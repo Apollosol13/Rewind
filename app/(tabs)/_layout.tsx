@@ -1,9 +1,9 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import MessagesTabIcon from '../../src/components/MessagesTabIcon';
 
 export default function TabLayout() {
   return (
@@ -24,7 +24,20 @@ export default function TabLayout() {
         options={{
           title: 'Feed',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 24 }}>{focused ? '📸' : '📷'}</Text>
+            <IconSymbol 
+              size={28} 
+              name={focused ? 'camera.fill' : 'camera'} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, focused }) => (
+            <MessagesTabIcon color={color} focused={focused} />
           ),
         }}
       />
@@ -33,7 +46,11 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 24 }}>{focused ? '👤' : '👥'}</Text>
+            <IconSymbol 
+              size={28} 
+              name={focused ? 'person.fill' : 'person'} 
+              color={color} 
+            />
           ),
         }}
       />

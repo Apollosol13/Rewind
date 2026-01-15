@@ -7,28 +7,95 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView,
+  Modal,
+  Image,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import PhotoCard from '../components/PhotoCard';
 import HandwrittenText from '../components/HandwrittenText';
-import { getFeed } from '../services/photos';
+import PolaroidFrame from '../components/PolaroidFrame';
+import { 
+  getFeed, 
+  likePhoto, 
+  unlikePhoto, 
+  addComment, 
+  getComments, 
+  hasUserLikedPhoto,
+  addCommentReply,
+  deleteComment
+} from '../services/photos';
+import { getCurrentUser } from '../services/auth';
+import { hasPostedToday as checkHasPostedToday } from '../services/dailyPost';
 import { Photo } from '../config/supabase';
+import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function FeedScreen() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [photoLikes, setPhotoLikes] = useState<Record<string, boolean>>({});
+  const [photoComments, setPhotoComments] = useState<Record<string, any[]>>({});
+  const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [hasPostedToday, setHasPostedToday] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    loadFeed();
+    loadCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadFeed();
+    }
+  }, [currentUserId]);
+
+  const loadCurrentUser = async () => {
+    const { user } = await getCurrentUser();
+    if (user) {
+      setCurrentUserId(user.id);
+    }
+  };
 
   const loadFeed = async () => {
     try {
+      // Check if user has posted today
+      if (currentUserId) {
+        const { hasPosted } = await checkHasPostedToday(currentUserId);
+        setHasPostedToday(hasPosted);
+      }
+
       const { photos: fetchedPhotos, error } = await getFeed();
       if (!error && fetchedPhotos) {
         setPhotos(fetchedPhotos);
+        
+        // Load likes and comments for each photo
+        if (currentUserId) {
+          const likes: Record<string, boolean> = {};
+          const comments: Record<string, any[]> = {};
+          
+          await Promise.all(
+            fetchedPhotos.map(async (photo) => {
+              const [{ liked }, { comments: photoComments }] = await Promise.all([
+                hasUserLikedPhoto(photo.id, currentUserId),
+                getComments(photo.id),
+              ]);
+              likes[photo.id] = liked;
+              comments[photo.id] = photoComments || [];
+            })
+          );
+          
+          setPhotoLikes(likes);
+          setPhotoComments(comments);
+        }
       }
     } catch (error) {
       console.error('Error loading feed:', error);
@@ -43,6 +110,123 @@ export default function FeedScreen() {
     setRefreshing(false);
   };
 
+  const handlePhotoLike = async (photoId: string) => {
+    if (!currentUserId) return;
+    
+    await likePhoto(photoId, currentUserId);
+    setPhotoLikes(prev => ({ ...prev, [photoId]: true }));
+    
+    // Update photo likes count
+    setPhotos(prev => prev.map(p => 
+      p.id === photoId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p
+    ));
+  };
+
+  const handlePhotoUnlike = async (photoId: string) => {
+    if (!currentUserId) return;
+    
+    await unlikePhoto(photoId, currentUserId);
+    setPhotoLikes(prev => ({ ...prev, [photoId]: false }));
+    
+    // Update photo likes count
+    setPhotos(prev => prev.map(p => 
+      p.id === photoId ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) - 1) } : p
+    ));
+  };
+
+  const handlePhotoComment = async (photoId: string, text: string) => {
+    if (!currentUserId) return;
+    
+    const { error } = await addComment(photoId, currentUserId, text);
+    if (!error) {
+      // Reload comments for this photo
+      const { comments: fetchedComments } = await getComments(photoId);
+      if (fetchedComments) {
+        setPhotoComments(prev => ({ ...prev, [photoId]: fetchedComments }));
+        
+        // Update photo comments count
+        setPhotos(prev => prev.map(p => 
+          p.id === photoId ? { ...p, comments_count: fetchedComments.length } : p
+        ));
+      }
+    }
+  };
+
+  const openPhotoDetail = async (photo: Photo) => {
+    setSelectedPhoto(photo);
+    setCommentText('');
+    setReplyingTo(null);
+  };
+
+  const closePhotoDetail = () => {
+    setSelectedPhoto(null);
+    setCommentText('');
+    setReplyingTo(null);
+  };
+
+  const handleModalAddComment = async () => {
+    if (!currentUserId || !selectedPhoto || !commentText.trim()) return;
+    
+    let result;
+    if (replyingTo) {
+      result = await addCommentReply(
+        selectedPhoto.id,
+        currentUserId,
+        commentText.trim(),
+        replyingTo.id
+      );
+    } else {
+      result = await addComment(selectedPhoto.id, currentUserId, commentText.trim());
+    }
+    
+    if (!result.error) {
+      // Reload comments
+      const { comments: fetchedComments } = await getComments(selectedPhoto.id);
+      if (fetchedComments) {
+        setPhotoComments(prev => ({ ...prev, [selectedPhoto.id]: fetchedComments }));
+      }
+      setCommentText('');
+      setReplyingTo(null);
+    }
+  };
+
+  const handleDeleteComment = async (photoId: string, commentId: string) => {
+    if (!currentUserId) return;
+    
+    const { error } = await deleteComment(commentId, currentUserId);
+    if (!error) {
+      // Reload comments
+      const { comments: fetchedComments } = await getComments(photoId);
+      if (fetchedComments) {
+        setPhotoComments(prev => ({ ...prev, [photoId]: fetchedComments }));
+        
+        // Update photo comments count
+        setPhotos(prev => prev.map(p => 
+          p.id === photoId ? { ...p, comments_count: fetchedComments.length } : p
+        ));
+      }
+    }
+  };
+
+  const handleModalDeleteComment = async (commentId: string) => {
+    if (!currentUserId || !selectedPhoto) return;
+    
+    Alert.alert(
+      'Delete Comment',
+      'Are you sure you want to delete this comment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await handleDeleteComment(selectedPhoto.id, commentId);
+          },
+        },
+      ]
+    );
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <HandwrittenText size={36} bold>Rewind</HandwrittenText>
@@ -52,7 +236,12 @@ export default function FeedScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyEmoji}>📸</Text>
+      <IconSymbol 
+        name="camera.fill" 
+        size={80} 
+        color="#CCCCCC"
+        style={styles.emptyCameraIcon}
+      />
       <HandwrittenText size={26} bold>No Rewinds yet</HandwrittenText>
       <Text style={styles.emptyText}>
         Be the first to capture a moment!
@@ -78,16 +267,24 @@ export default function FeedScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={photos}
         renderItem={({ item }) => (
           <PhotoCard 
-            photo={item} 
-            onPress={() => {
-              // Navigate to photo detail (to be implemented)
-              console.log('Photo pressed:', item.id);
+            photo={item}
+            currentUserId={currentUserId}
+            hasLiked={photoLikes[item.id] || false}
+            comments={photoComments[item.id] || []}
+            onLike={() => handlePhotoLike(item.id)}
+            onUnlike={() => handlePhotoUnlike(item.id)}
+            onAddComment={(text) => handlePhotoComment(item.id, text)}
+            onViewAllComments={() => openPhotoDetail(item)}
+            onReply={(comment) => {
+              setSelectedPhoto(item);
+              setReplyingTo(comment);
             }}
+            onDeleteComment={(commentId) => handleDeleteComment(item.id, commentId)}
           />
         )}
         keyExtractor={(item) => item.id}
@@ -109,9 +306,157 @@ export default function FeedScreen() {
         style={styles.floatingButton}
         onPress={() => router.push('/camera')}
       >
-        <Text style={styles.floatingButtonText}>📸</Text>
+        <IconSymbol name="camera.fill" size={32} color="white" />
+        {hasPostedToday && (
+          <View style={styles.postedBadge}>
+            <IconSymbol name="checkmark.circle.fill" size={20} color="#4CAF50" />
+          </View>
+        )}
       </TouchableOpacity>
-    </View>
+
+      {/* Photo Detail Modal */}
+      <Modal
+        visible={!!selectedPhoto}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={closePhotoDetail}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContent}
+          >
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={closePhotoDetail}>
+                <IconSymbol name="xmark" size={24} color="#333" />
+              </TouchableOpacity>
+              <HandwrittenText size={20} bold>
+                @{selectedPhoto?.users?.username}
+              </HandwrittenText>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {/* Photo */}
+              {selectedPhoto && (
+                <View style={styles.photoContainer}>
+                  <PolaroidFrame
+                    imageUri={selectedPhoto.image_url}
+                    caption={selectedPhoto.caption}
+                    date={selectedPhoto.created_at}
+                    showRainbow={true}
+                    width={340}
+                  />
+                </View>
+              )}
+
+              {/* Likes and Actions */}
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => selectedPhoto && (photoLikes[selectedPhoto.id] ? handlePhotoUnlike(selectedPhoto.id) : handlePhotoLike(selectedPhoto.id))}
+                >
+                  <IconSymbol 
+                    name={selectedPhoto && photoLikes[selectedPhoto.id] ? "heart.fill" : "heart"} 
+                    size={28} 
+                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#FF4444" : "#333"} 
+                  />
+                  <Text style={styles.actionCount}>{selectedPhoto?.likes_count || 0}</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.actionButton}>
+                  <IconSymbol name="bubble.left" size={28} color="#333" />
+                  <Text style={styles.actionCount}>{selectedPhoto && photoComments[selectedPhoto.id] ? photoComments[selectedPhoto.id].length : 0}</Text>
+                </View>
+              </View>
+
+              {/* Comments Section */}
+              <View style={styles.commentsSection}>
+                <Text style={styles.commentsTitle}>Comments</Text>
+                
+                {selectedPhoto && photoComments[selectedPhoto.id]?.filter(c => !c.parent_comment_id).map((comment) => (
+                  <View key={comment.id}>
+                    <View style={styles.commentItem}>
+                      <View style={styles.commentHeader}>
+                        <HandwrittenText size={14} bold>
+                          @{comment.users?.username}
+                        </HandwrittenText>
+                        {comment.user_id === currentUserId && (
+                          <TouchableOpacity onPress={() => handleModalDeleteComment(comment.id)}>
+                            <IconSymbol name="trash" size={16} color="#FF4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={styles.commentText}>{comment.text}</Text>
+                      <TouchableOpacity onPress={() => setReplyingTo(comment)}>
+                        <Text style={styles.replyButton}>Reply</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {/* Replies */}
+                    {selectedPhoto && photoComments[selectedPhoto.id]?.filter(c => c.parent_comment_id === comment.id).map((reply) => (
+                      <View key={reply.id} style={styles.replyItem}>
+                        <View style={styles.commentHeader}>
+                          <HandwrittenText size={12} bold>
+                            @{reply.users?.username}
+                          </HandwrittenText>
+                          {reply.user_id === currentUserId && (
+                            <TouchableOpacity onPress={() => handleModalDeleteComment(reply.id)}>
+                              <IconSymbol name="trash" size={14} color="#FF4444" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <Text style={styles.replyText}>{reply.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+                
+                {selectedPhoto && (!photoComments[selectedPhoto.id] || photoComments[selectedPhoto.id].length === 0) && (
+                  <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+                )}
+              </View>
+            </ScrollView>
+
+            {/* Comment Input */}
+            <View style={styles.commentInputContainer}>
+              {replyingTo && (
+                <View style={styles.replyingToBar}>
+                  <Text style={styles.replyingToText}>
+                    Replying to @{replyingTo.users?.username}
+                  </Text>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                    <IconSymbol name="xmark.circle.fill" size={20} color="#999" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Add a comment..."
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity 
+                  style={styles.sendButton}
+                  onPress={handleModalAddComment}
+                  disabled={!commentText.trim()}
+                >
+                  <IconSymbol 
+                    name="paperplane.fill" 
+                    size={24} 
+                    color={commentText.trim() ? "#FF4444" : "#CCC"} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
@@ -134,6 +479,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 10,
+    paddingHorizontal: 30,
+    overflow: 'visible',
+    width: '100%',
   },
   subtitle: {
     fontSize: 16,
@@ -151,8 +499,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingVertical: 60,
   },
-  emptyEmoji: {
-    fontSize: 80,
+  emptyCameraIcon: {
     marginBottom: 20,
   },
   emptyText: {
@@ -194,7 +541,145 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  floatingButtonText: {
-    fontSize: 32,
+  postedBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  // Photo Detail Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  photoContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    gap: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  commentsSection: {
+    padding: 20,
+  },
+  commentsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  commentItem: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  replyButton: {
+    fontSize: 12,
+    color: '#FF4444',
+    fontWeight: '600',
+  },
+  replyItem: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    padding: 10,
+    marginLeft: 30,
+    marginBottom: 8,
+  },
+  replyText: {
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 18,
+  },
+  noComments: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 30,
+  },
+  commentInputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  replyingToBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F0F0F0',
+  },
+  replyingToText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 12,
+    gap: 10,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  sendButton: {
+    padding: 8,
   },
 });

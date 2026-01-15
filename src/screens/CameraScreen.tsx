@@ -10,14 +10,21 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import CameraButton from '../components/CameraButton';
 import PolaroidFrame from '../components/PolaroidFrame';
 import HandwrittenText from '../components/HandwrittenText';
+import StyleDial, { PhotoStyle } from '../components/StyleDial';
+import { IconSymbol } from '../../components/ui/icon-symbol';
 import { uploadPhoto } from '../services/photos';
 import { getCurrentUser } from '../services/auth';
+import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
+import { savePreferredPostHour } from '../services/notificationPreferences';
+import { scheduleSmartDailyNotification } from '../services/notifications';
 import * as Haptics from 'expo-haptics';
 
 export default function CameraScreen() {
@@ -26,6 +33,10 @@ export default function CameraScreen() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [photoStyle, setPhotoStyle] = useState<PhotoStyle>('polaroid');
+  const [alreadyPosted, setAlreadyPosted] = useState(false);
+  const [timeUntilNext, setTimeUntilNext] = useState({ hours: 0, minutes: 0 });
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
 
@@ -35,6 +46,33 @@ export default function CameraScreen() {
       requestPermission();
     }
   }, []);
+
+  // Check daily post status on mount
+  useEffect(() => {
+    checkDailyPostStatus();
+    updateTimeRemaining();
+    
+    // Update countdown every minute
+    const interval = setInterval(() => {
+      updateTimeRemaining();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const checkDailyPostStatus = async () => {
+    const { user } = await getCurrentUser();
+    if (user) {
+      const { hasPosted } = await hasPostedToday(user.id);
+      setAlreadyPosted(hasPosted);
+    }
+    setCheckingStatus(false);
+  };
+
+  const updateTimeRemaining = () => {
+    const time = getTimeUntilNextPost();
+    setTimeUntilNext(time);
+  };
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -56,6 +94,16 @@ export default function CameraScreen() {
   }
 
   const takePicture = async () => {
+    // Check if user has already posted today
+    if (alreadyPosted) {
+      Alert.alert(
+        '📸 Already Posted Today!',
+        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
     if (cameraRef.current) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -94,10 +142,22 @@ export default function CameraScreen() {
         return;
       }
 
+      // Record daily post
+      if (photo) {
+        await recordDailyPost(user.id, photo.id);
+        setAlreadyPosted(true);
+
+        // Save preferred posting hour for smart notifications
+        const currentHour = new Date().getHours();
+        await savePreferredPostHour(user.id, currentHour);
+        
+        // Reschedule daily notification based on this time
+        await scheduleSmartDailyNotification(currentHour);
+      }
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success! 🎉', 'Your Rewind has been shared!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // Navigate to feed after successful upload
+      router.replace('/(tabs)');
     } catch (error) {
       console.error('Error uploading:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -114,64 +174,81 @@ export default function CameraScreen() {
   // Preview modal after capturing
   if (capturedImage) {
     return (
-      <View style={styles.previewContainer}>
-        <View style={styles.previewHeader}>
-          <HandwrittenText size={28} bold>Your Rewind</HandwrittenText>
-        </View>
-
-        <View style={styles.previewContent}>
-          <PolaroidFrame
-            imageUri={capturedImage}
-            caption={caption}
-            date={new Date()}
-            showRainbow={true}
-            width={340}
-          />
-
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.captionContainer}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.previewContainer}>
+          <TouchableOpacity 
+            style={styles.previewBackButton}
+            onPress={() => router.back()}
           >
-            <TextInput
-              style={styles.captionInput}
-              placeholder="Add a caption..."
-              placeholderTextColor="#999"
-              value={caption}
-              onChangeText={setCaption}
-              maxLength={100}
-              multiline
+            <Text style={styles.backIcon}>✕</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.previewHeader}>
+            <HandwrittenText size={28} bold>Your Rewind</HandwrittenText>
+          </View>
+
+          <View style={styles.previewContent}>
+            <PolaroidFrame
+              imageUri={capturedImage}
+              caption={caption}
+              date={new Date()}
+              showRainbow={true}
+              width={340}
             />
-          </KeyboardAvoidingView>
-        </View>
 
-        <View style={styles.previewActions}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.retakeButton]} 
-            onPress={retakePicture}
-            disabled={uploading}
-          >
-            <Text style={styles.actionButtonText}>Retake</Text>
-          </TouchableOpacity>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.captionContainer}
+            >
+              <TextInput
+                style={styles.captionInput}
+                placeholder="Add a caption..."
+                placeholderTextColor="#999"
+                value={caption}
+                onChangeText={setCaption}
+                maxLength={100}
+                multiline
+              />
+            </KeyboardAvoidingView>
+          </View>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.shareButton]} 
-            onPress={handleUpload}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.actionButtonText}>Share 📸</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.previewActions}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.retakeButton]} 
+              onPress={retakePicture}
+              disabled={uploading}
+            >
+              <Text style={styles.actionButtonText}>Retake</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.shareButton]} 
+              onPress={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.actionButtonText}>Share 📸</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     );
   }
 
   // Camera view
   return (
     <View style={styles.container}>
+      {/* Back button */}
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.backIcon}>✕</Text>
+      </TouchableOpacity>
+
       {/* Polaroid Camera Frame */}
       <View style={styles.cameraFrame}>
         {/* Rainbow stripe at top */}
@@ -193,10 +270,22 @@ export default function CameraScreen() {
         />
       </View>
 
+      {/* Daily Post Status Banner */}
+      {!checkingStatus && alreadyPosted && (
+        <View style={styles.statusBanner}>
+          <IconSymbol name="checkmark.circle.fill" size={20} color="#4CAF50" />
+          <Text style={styles.statusText}>
+            Posted today! Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
+          </Text>
+        </View>
+      )}
+
       {/* Polaroid branding */}
       <View style={styles.brandingContainer}>
         <HandwrittenText size={32} bold>Rewind</HandwrittenText>
-        <Text style={styles.tagline}>Capture the moment</Text>
+        <Text style={styles.tagline}>
+          {alreadyPosted ? 'See you tomorrow!' : 'Capture the moment'}
+        </Text>
       </View>
 
       {/* Controls */}
@@ -210,7 +299,12 @@ export default function CameraScreen() {
 
         <CameraButton onPress={takePicture} />
 
-        <View style={{ width: 60 }} />
+        <View style={styles.dialContainer}>
+          <StyleDial 
+            selectedStyle={photoStyle}
+            onStyleChange={setPhotoStyle}
+          />
+        </View>
       </View>
     </View>
   );
@@ -221,6 +315,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
     justifyContent: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#333',
+    fontWeight: '600',
   },
   permissionContainer: {
     flex: 1,
@@ -275,6 +391,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    marginTop: 10,
+    gap: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#2C5F2D',
+    fontWeight: '600',
+  },
   brandingContainer: {
     alignItems: 'center',
     marginTop: 20,
@@ -307,10 +439,32 @@ const styles = StyleSheet.create({
   flipIcon: {
     fontSize: 28,
   },
+  dialContainer: {
+    width: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   previewContainer: {
     flex: 1,
     backgroundColor: '#F5F5F0',
     paddingTop: 60,
+  },
+  previewBackButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
   },
   previewHeader: {
     alignItems: 'center',
@@ -328,13 +482,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 15,
-    fontSize: 16,
-    minHeight: 60,
+    fontSize: 18,
+    color: '#333',
+    minHeight: 80,
+    textAlignVertical: 'top',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    fontWeight: '500',
   },
   previewActions: {
     flexDirection: 'row',

@@ -1,10 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { supabase } from '../config/supabase';
 
 // Configure how notifications should be displayed
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowAlert: true, // Keep for backwards compatibility
+    shouldShowBanner: true, // New API for iOS 14+
+    shouldShowList: true, // Show in notification list
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -45,6 +48,95 @@ export async function requestNotificationPermissions() {
 }
 
 /**
+ * Register device push token for current user
+ */
+export async function registerPushToken(userId: string) {
+  try {
+    // For Expo Go, use experienceId from the slug
+    // For standalone builds, projectId would be from app.json
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId: '00000000-0000-0000-0000-000000000000', // Temporary for development
+    });
+
+    console.log('📱 Got push token:', token.data);
+
+    // Save to database
+    const { error } = await supabase
+      .from('users')
+      .update({ push_token: token.data })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    console.log('✅ Push token registered for user:', userId);
+    return { token: token.data, error: null };
+  } catch (error) {
+    console.error('Error registering push token:', error);
+    console.log('💡 For push notifications to work, you need to either:');
+    console.log('   1. Run: npx eas init (to get a real project ID)');
+    console.log('   2. Build a standalone app with EAS Build');
+    console.log('   3. For testing in Expo Go, use local notifications');
+    return { token: null, error };
+  }
+}
+
+/**
+ * Send push notification to a specific user
+ */
+export async function sendPushNotificationToUser(
+  userId: string,
+  title: string,
+  body: string,
+  data?: any
+) {
+  try {
+    // Get user's push token from database
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('push_token')
+      .eq('id', userId)
+      .single();
+
+    if (userError) throw userError;
+
+    if (!userData?.push_token) {
+      console.log('⚠️ User has no push token registered:', userId);
+      console.log('💡 Skipping notification - push notifications require EAS setup');
+      console.log('   Run: npx eas init (then update app.json with projectId)');
+      return { error: 'No push token' };
+    }
+
+    // Send push notification via Expo's push service
+    const message = {
+      to: userData.push_token,
+      sound: 'default',
+      title,
+      body,
+      data,
+      priority: 'high',
+    };
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+
+    const result = await response.json();
+    console.log('📤 Push notification sent:', result);
+
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    return { error };
+  }
+}
+
+/**
  * Schedule daily random notification (BeReal style)
  */
 export async function scheduleDailyNotification() {
@@ -56,12 +148,6 @@ export async function scheduleDailyNotification() {
     const randomHour = Math.floor(Math.random() * 14) + 9; // 9-23
     const randomMinute = Math.floor(Math.random() * 60); // 0-59
 
-    const trigger = {
-      hour: randomHour,
-      minute: randomMinute,
-      repeats: true,
-    };
-
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: '⚡️ Time to Rewind!',
@@ -70,7 +156,12 @@ export async function scheduleDailyNotification() {
         priority: Notifications.AndroidNotificationPriority.HIGH,
         data: { type: 'daily_prompt' },
       },
-      trigger,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: randomHour,
+        minute: randomMinute,
+        repeats: true,
+      },
     });
 
     console.log(`📅 Daily notification scheduled at ${randomHour}:${randomMinute}`);
@@ -111,5 +202,159 @@ export async function getScheduledNotifications() {
   } catch (error) {
     console.error('Error getting scheduled notifications:', error);
     return { notifications: [], error };
+  }
+}
+
+/**
+ * Schedule smart daily notification based on user's posting habits
+ */
+export async function scheduleSmartDailyNotification(preferredHour?: number) {
+  try {
+    // Cancel any existing daily notifications
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    let hour: number;
+    let minute: number;
+
+    if (preferredHour !== undefined && preferredHour !== null) {
+      // Use user's preferred time (±15 minutes for variety)
+      hour = preferredHour;
+      minute = Math.floor(Math.random() * 30) - 15; // -15 to +15 minutes
+      if (minute < 0) {
+        minute += 60;
+        hour = hour > 0 ? hour - 1 : 23;
+      }
+      if (minute >= 60) {
+        minute -= 60;
+        hour = hour < 23 ? hour + 1 : 0;
+      }
+    } else {
+      // No history yet, use random time between 9 AM and 11 PM
+      hour = Math.floor(Math.random() * 14) + 9; // 9-23
+      minute = Math.floor(Math.random() * 60); // 0-59
+    }
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚡️ Time to Rewind!',
+        body: 'Capture this moment and share your day! 📸',
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        data: { type: 'daily_rewind' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        repeats: true,
+      },
+    });
+
+    console.log(`📅 Smart daily notification scheduled at ${hour}:${String(minute).padStart(2, '0')}`);
+    return { notificationId, error: null };
+  } catch (error) {
+    console.error('Error scheduling smart notification:', error);
+    return { notificationId: null, error };
+  }
+}
+
+/**
+ * Send notification for new message (Push notification to recipient)
+ */
+export async function sendNewMessageNotification(recipientUserId: string, senderUsername: string) {
+  try {
+    await sendPushNotificationToUser(
+      recipientUserId,
+      '📬 New Sticky Note!',
+      `@${senderUsername} sent you a sticky note message`,
+      { type: 'new_message' }
+    );
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending new message notification:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send notification reminder to message friends
+ */
+export async function sendMessageReminderNotification() {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💌 Stay Connected!',
+        body: "Send a sticky note to a friend - it's been a while!",
+        sound: true,
+        data: { type: 'message_reminder' },
+      },
+      trigger: null, // Show immediately
+    });
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending message reminder notification:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send notification for photo liked (Push notification to photo owner)
+ */
+export async function sendPhotoLikedNotification(photoOwnerId: string, likerUsername: string) {
+  try {
+    await sendPushNotificationToUser(
+      photoOwnerId,
+      '❤️ New Like!',
+      `@${likerUsername} liked your Rewind`,
+      { type: 'photo_liked' }
+    );
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending photo liked notification:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send notification for photo commented (Push notification to photo owner)
+ */
+export async function sendPhotoCommentedNotification(
+  photoOwnerId: string,
+  commenterUsername: string,
+  commentText: string
+) {
+  try {
+    const truncatedComment = commentText.length > 50 
+      ? commentText.substring(0, 50) + '...' 
+      : commentText;
+    
+    await sendPushNotificationToUser(
+      photoOwnerId,
+      '💬 New Comment!',
+      `@${commenterUsername}: ${truncatedComment}`,
+      { type: 'photo_commented' }
+    );
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending photo commented notification:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send notification for new follower (Push notification to followed user)
+ */
+export async function sendNewFollowerNotification(followedUserId: string, followerUsername: string) {
+  try {
+    await sendPushNotificationToUser(
+      followedUserId,
+      '👋 New Follower!',
+      `@${followerUsername} started following you`,
+      { type: 'new_follower' }
+    );
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending new follower notification:', error);
+    return { error };
   }
 }

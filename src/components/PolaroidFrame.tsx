@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, Text } from 'react-native';
+import { View, Image, StyleSheet, Dimensions } from 'react-native';
 import HandwrittenText from './HandwrittenText';
 import { formatPolaroidDate } from '../utils/dateFormatter';
 
@@ -44,11 +44,17 @@ export default function PolaroidFrame({
           style={[styles.photo, { width: imageSize, height: imageSize }]}
           resizeMode="cover"
         />
+        {/* Vintage overlay for warm/sepia tone */}
+        <View style={[styles.vintageOverlay, { width: imageSize, height: imageSize }]} />
+        {/* Vignette effect (darkened corners) */}
+        <View style={[styles.vignette, { width: imageSize, height: imageSize }]} />
       </View>
 
       {/* Bottom section with date and caption */}
       <View style={styles.bottomSection}>
-        <Text style={styles.date}>{formatPolaroidDate(photoDate)}</Text>
+        <HandwrittenText size={16} style={styles.date}>
+          {formatPolaroidDate(photoDate)}
+        </HandwrittenText>
         {caption ? (
           <HandwrittenText size={22} style={styles.caption}>
             {caption}
@@ -61,7 +67,7 @@ export default function PolaroidFrame({
 
 const styles = StyleSheet.create({
   polaroidFrame: {
-    backgroundColor: 'white',
+    backgroundColor: '#F8F6F0', // Aged white/cream color
     padding: 20,
     paddingBottom: 50,
     borderRadius: 4,
@@ -90,19 +96,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 2,
     overflow: 'hidden',
+    position: 'relative',
   },
   photo: {
     borderRadius: 2,
+  },
+  vintageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backgroundColor: 'rgba(255, 220, 150, 0.15)', // Warm sepia tone
+    borderRadius: 2,
+  },
+  vignette: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderRadius: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   bottomSection: {
     marginTop: 12,
     paddingHorizontal: 4,
   },
   date: {
-    fontSize: 11,
-    color: '#999',
-    fontFamily: 'Courier',
-    letterSpacing: 1,
+    color: '#8B7355', // Faded brown color like old ink
+    opacity: 0.85,
+    marginBottom: 4,
   },
   caption: {
     marginTop: 6,

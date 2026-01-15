@@ -34,6 +34,8 @@ export default function HandwrittenText({
         },
         style
       ]}
+      numberOfLines={1}
+      adjustsFontSizeToFit={false}
     >
       {children}
     </Text>
@@ -44,5 +46,7 @@ const styles = StyleSheet.create({
   handwritten: {
     color: '#2C2C2C',
     letterSpacing: 0.5,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

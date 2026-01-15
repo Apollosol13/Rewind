@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabase';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from '../utils/base64';
+import { shouldSendNotification } from './notificationPreferences';
+import { sendPhotoLikedNotification, sendPhotoCommentedNotification } from './notifications';
 
 /**
  * Upload a photo to Supabase Storage and create database entry
@@ -68,7 +70,7 @@ export async function getFeed(limit: number = 20) {
       .from('photos')
       .select(`
         *,
-        users (
+        users!photos_user_id_fkey (
           id,
           username,
           display_name,
@@ -129,9 +131,52 @@ export async function getUserPhotos(userId: string) {
 }
 
 /**
+ * Delete a photo
+ */
+export async function deletePhoto(photoId: string, userId: string) {
+  try {
+    // First get the photo to get the image URL
+    const { data: photo, error: fetchError } = await supabase
+      .from('photos')
+      .select('image_url')
+      .eq('id', photoId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Delete from database (will cascade delete comments and likes)
+    const { error: deleteError } = await supabase
+      .from('photos')
+      .delete()
+      .eq('id', photoId)
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+
+    // Delete from storage
+    if (photo?.image_url) {
+      const filePath = photo.image_url.split('/').pop();
+      if (filePath) {
+        await supabase.storage
+          .from('rewind-photos')
+          .remove([`photos/${filePath}`]);
+      }
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    return { error };
+  }
+}
+
+/**
  * Like a photo
  */
 export async function likePhoto(photoId: string, userId: string) {
+  console.log('🚀 likePhoto called:', { photoId, userId });
+  
   try {
     const { error } = await supabase
       .from('likes')
@@ -142,8 +187,50 @@ export async function likePhoto(photoId: string, userId: string) {
           created_at: new Date().toISOString(),
         },
       ]);
+    
+    console.log('💾 Like saved to database, error:', error);
 
-    if (error) throw error;
+    if (error) {
+      console.log('❌ Error saving like:', error);
+      throw error;
+    }
+
+    console.log('✅ Like saved successfully, now checking for notifications...');
+
+    // Send notification to photo owner if they have it enabled
+    const { data: photoData } = await supabase
+      .from('photos')
+      .select('user_id')
+      .eq('id', photoId)
+      .single();
+
+    console.log('📸 Like notification check:', {
+      photoOwnerId: photoData?.user_id,
+      likerId: userId,
+      isSelfLike: photoData?.user_id === userId
+    });
+
+    if (photoData && photoData.user_id !== userId) {
+      const ownerWantsNotif = await shouldSendNotification(photoData.user_id, 'notif_photo_liked');
+      console.log('👤 Photo owner wants like notifications:', ownerWantsNotif);
+      
+      if (ownerWantsNotif) {
+        // Get liker username for notification
+        const { data: likerData } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', userId)
+          .single();
+        
+        if (likerData) {
+          console.log('🔔 Sending like notification to photo owner:', photoData.user_id);
+          await sendPhotoLikedNotification(photoData.user_id, likerData.username);
+        }
+      }
+    } else if (photoData?.user_id === userId) {
+      console.log('⚠️ Not sending notification - you liked your own photo');
+    }
+
     return { error: null };
   } catch (error) {
     console.error('Error liking photo:', error);
@@ -189,6 +276,43 @@ export async function addComment(photoId: string, userId: string, text: string) 
       .single();
 
     if (error) throw error;
+
+    // Send notification to photo owner if they have it enabled
+    if (data) {
+      const { data: photoData } = await supabase
+        .from('photos')
+        .select('user_id')
+        .eq('id', photoId)
+        .single();
+
+      console.log('💬 Comment notification check:', {
+        photoOwnerId: photoData?.user_id,
+        commenterId: userId,
+        isSelfComment: photoData?.user_id === userId
+      });
+
+      if (photoData && photoData.user_id !== userId) {
+        const ownerWantsNotif = await shouldSendNotification(photoData.user_id, 'notif_photo_commented');
+        console.log('👤 Photo owner wants comment notifications:', ownerWantsNotif);
+        
+        if (ownerWantsNotif) {
+          // Get commenter username for notification
+          const { data: commenterData } = await supabase
+            .from('users')
+            .select('username')
+            .eq('id', userId)
+            .single();
+          
+          if (commenterData) {
+            console.log('🔔 Sending comment notification to photo owner:', photoData.user_id);
+            await sendPhotoCommentedNotification(photoData.user_id, commenterData.username, text);
+          }
+        }
+      } else if (photoData?.user_id === userId) {
+        console.log('⚠️ Not sending notification - you commented on your own photo');
+      }
+    }
+
     return { comment: data, error: null };
   } catch (error) {
     console.error('Error adding comment:', error);
@@ -205,7 +329,7 @@ export async function getComments(photoId: string) {
       .from('comments')
       .select(`
         *,
-        users (
+        users!comments_user_id_fkey (
           id,
           username,
           display_name,
@@ -220,5 +344,76 @@ export async function getComments(photoId: string) {
   } catch (error) {
     console.error('Error getting comments:', error);
     return { comments: [], error };
+  }
+}
+
+/**
+ * Check if user has liked a photo
+ */
+export async function hasUserLikedPhoto(photoId: string, userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('photo_id', photoId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+    return { liked: !!data, error: null };
+  } catch (error) {
+    console.error('Error checking if user liked photo:', error);
+    return { liked: false, error };
+  }
+}
+
+/**
+ * Add a reply to a comment
+ */
+export async function addCommentReply(
+  photoId: string,
+  userId: string,
+  text: string,
+  parentCommentId: string
+) {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([
+        {
+          photo_id: photoId,
+          user_id: userId,
+          text: text,
+          parent_comment_id: parentCommentId,
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { comment: data, error: null };
+  } catch (error) {
+    console.error('Error adding comment reply:', error);
+    return { comment: null, error };
+  }
+}
+
+/**
+ * Delete a comment
+ */
+export async function deleteComment(commentId: string, userId: string) {
+  try {
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    return { error };
   }
 }

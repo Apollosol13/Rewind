@@ -8,10 +8,10 @@
     "scheme": "rewind",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "owner": "your-expo-username",
+    "owner": "bstudenc",
     "extra": {
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "7aac9bca-c4dd-4f6e-b830-1d72d34f11f9"
       }
     },
     "ios": {

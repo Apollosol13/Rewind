@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Rewind",
-    "slug": "Rewind",
+    "name": "REWND",
+    "slug": "REWND",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,10 +15,12 @@
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ],
         "NSCameraUsageDescription": "Rewind needs access to your camera to capture your daily moments.",
-        "NSPhotoLibraryUsageDescription": "Rewind needs access to your photo library to save your Rewinds."
+        "NSPhotoLibraryUsageDescription": "Rewind needs access to your photo library to save your Rewinds.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "usesAppleSignIn": true
     },

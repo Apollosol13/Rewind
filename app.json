@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rewind.app",
+      "bundleIdentifier": "com.rewindapp.ios",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],

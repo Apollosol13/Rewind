@@ -9,17 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "owner": "bstudenc",
-    "extra": {
-      "eas": {
-        "projectId": "7aac9bca-c4dd-4f6e-b830-1d72d34f11f9"
-      }
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rewindapp.ios",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSCameraUsageDescription": "Rewind needs access to your camera to capture your daily moments.",
         "NSPhotoLibraryUsageDescription": "Rewind needs access to your photo library to save your Rewinds."
       },
@@ -59,6 +56,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "becf300e-074b-47d6-9233-785239d24351"
+      }
     }
   }
 }

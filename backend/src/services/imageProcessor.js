@@ -21,6 +21,7 @@ const config = {
 export async function compressImage(imageBuffer) {
   try {
     const compressed = await sharp(imageBuffer)
+      .rotate() // Auto-rotate based on EXIF orientation
       .resize(config.maxWidth, config.maxHeight, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -49,6 +50,7 @@ export async function compressImage(imageBuffer) {
 export async function generateThumbnail(imageBuffer) {
   try {
     const thumbnail = await sharp(imageBuffer)
+      .rotate() // Auto-rotate based on EXIF orientation
       .resize(config.thumbnailWidth, null, {
         fit: 'inside',
         withoutEnlargement: true,

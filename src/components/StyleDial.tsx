@@ -43,10 +43,10 @@ const STYLE_OPTIONS: StyleOption[] = [
   },
   { 
     id: 'film', 
-    label: 'Film', 
+    label: 'B&W', 
     icon: 'film', 
     color: '#4D96FF',
-    description: '1990s-2000s film photography with natural grain and rich colors'
+    description: 'Clean black & white with balanced contrast and cool tone'
   },
   { 
     id: 'camcorder', 

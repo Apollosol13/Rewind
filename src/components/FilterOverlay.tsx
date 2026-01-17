@@ -53,12 +53,12 @@ export default function FilterOverlay({ filterId }: FilterOverlayProps) {
     case 'film':
       return (
         <View style={styles.overlay} pointerEvents="none">
-          {/* Exposure -100 (very dark) */}
+          {/* Exposure -50 (moderate darkening) */}
           <View style={[StyleSheet.absoluteFill, styles.filmDarken]} />
-          {/* Saturation -61 (nearly black & white) */}
+          {/* Saturation -100 (pure black & white) */}
           <View style={[StyleSheet.absoluteFill, styles.filmDesaturate]} />
-          {/* Contrast +31 & Definition +73 (high contrast drama) */}
-          <View style={[StyleSheet.absoluteFill, styles.filmContrast]} />
+          {/* Warmth -50 (cool blue tone) */}
+          <View style={[StyleSheet.absoluteFill, styles.filmCoolTone]} />
         </View>
       );
 
@@ -118,15 +118,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 200, 120, 0.18)', // Warm amber for +42 warmth
   },
 
-  // Film: dramatic black & white high-contrast
+  // B&W: clean black & white
   filmDarken: {
-    backgroundColor: 'rgba(0, 0, 0, 0.45)', // Exposure -100 (very dark base)
+    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Exposure -50 (moderate darkening)
   },
   filmDesaturate: {
-    backgroundColor: 'rgba(128, 128, 128, 0.35)', // Saturation -61 (heavy desaturation)
+    backgroundColor: 'rgba(128, 128, 128, 0.50)', // Saturation -100 (full desaturation)
   },
-  filmContrast: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle highlight boost for contrast
+  filmCoolTone: {
+    backgroundColor: 'rgba(200, 220, 240, 0.12)', // Warmth -50 (cool blue tone)
   },
 
   // Camcorder: VHS home video aesthetic (Old VHS camera preset)

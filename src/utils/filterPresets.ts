@@ -144,35 +144,32 @@ export const FILTER_PRESETS: Record<string, FilterPreset> = {
   },
 
   /**
-   * FILM (1990s-2000s)
-   * High-contrast black & white film: dramatic shadows, blown highlights
+   * B&W (Black & White)
+   * Clean black & white filter with balanced contrast
    */
   film: {
     id: 'film',
-    name: 'Film',
-    era: '1990s-2000s',
+    name: 'B&W',
+    era: 'Timeless',
     characteristics: {
       colorMatrix: [
-        0.8, 0.0, 0.0, 0, -100,   // Exposure -100 (very dark)
-        0.0, 0.8, 0.0, 0, -100,
-        0.0, 0.0, 0.8, 0, -100,
+        0.5, 0.0, 0.0, 0, -50,   // Exposure -50
+        0.0, 0.5, 0.0, 0, -50,
+        0.0, 0.0, 0.5, 0, -50,
         0, 0, 0, 1, 0
       ],
-      brightness: 1.0,        // Brightness 0 (neutral)
-      contrast: 1.31,         // Contrast +31
-      saturation: 0.39,       // Saturation -61 (very desaturated)
-      temperature: 0,         // Neutral temperature
-      grain: 0.21,            // Noise reduction -21 (more grain)
-      vignette: 0.1,
+      brightness: 0.90,       // Brightness -10
+      contrast: 1.10,         // Contrast +10
+      saturation: 0.0,        // Saturation -100 (pure B&W)
+      temperature: -50,       // Warmth -50 (cool tone)
+      grain: 0.15,
+      vignette: 0.08,
       fade: 0.05,
-      // Advanced high-contrast B&W settings
+      // Advanced B&W settings
       highlights: 0.0,        // Highlights -100 (blown out)
-      blackPoint: 0.63,       // Black point +63 (crushed blacks)
-      vibrance: 0.76,         // Vibrance -24
-      brilliance: 0.99,       // Brilliance -1
-      definition: 0.73,       // Definition +73 (enhanced local contrast)
+      brilliance: 1.25,       // Brilliance +25 (enhanced brightness in highlights)
     },
-    description: 'Dramatic high-contrast black & white film with blown highlights, crushed blacks, and enhanced definition - classic fine art photography look',
+    description: 'Clean black & white filter with balanced contrast, blown highlights, and cool tone - timeless monochrome photography',
   },
 
   /**

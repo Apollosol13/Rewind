@@ -395,39 +395,6 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingRight: 8,
   },
-  flashToggle: {
-    padding: 4,
-  },
-  flashToggleTrack: {
-    width: 52,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  flashToggleTrackActive: {
-    backgroundColor: '#FFD93D',
-  },
-  flashToggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  flashToggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  flashToggleIcon: {
-    fontSize: 14,
-  },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',

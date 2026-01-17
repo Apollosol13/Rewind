@@ -53,8 +53,12 @@ export default function FilterOverlay({ filterId }: FilterOverlayProps) {
     case 'film':
       return (
         <View style={styles.overlay} pointerEvents="none">
-          {/* Subtle desaturation */}
-          <View style={[StyleSheet.absoluteFill, styles.filmOverlay]} />
+          {/* Exposure -100 (very dark) */}
+          <View style={[StyleSheet.absoluteFill, styles.filmDarken]} />
+          {/* Saturation -61 (nearly black & white) */}
+          <View style={[StyleSheet.absoluteFill, styles.filmDesaturate]} />
+          {/* Contrast +31 & Definition +73 (high contrast drama) */}
+          <View style={[StyleSheet.absoluteFill, styles.filmContrast]} />
         </View>
       );
 
@@ -114,9 +118,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 200, 120, 0.18)', // Warm amber for +42 warmth
   },
 
-  // Film: natural 90s-00s film look
-  filmOverlay: {
-    backgroundColor: 'rgba(220, 220, 240, 0.08)', // Slight cool desaturation
+  // Film: dramatic black & white high-contrast
+  filmDarken: {
+    backgroundColor: 'rgba(0, 0, 0, 0.45)', // Exposure -100 (very dark base)
+  },
+  filmDesaturate: {
+    backgroundColor: 'rgba(128, 128, 128, 0.35)', // Saturation -61 (heavy desaturation)
+  },
+  filmContrast: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle highlight boost for contrast
   },
 
   // Camcorder: VHS home video aesthetic (Old VHS camera preset)

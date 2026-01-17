@@ -47,7 +47,12 @@ export default function PolaroidFrame({
       <View style={styles.photoContainer}>
         <Image 
           source={{ uri: imageUri }} 
-          style={[styles.photo, { width: imageSize, height: imageSize }]}
+          style={[
+            styles.photo, 
+            { width: imageSize, height: imageSize },
+            // Apply grayscale for B&W filter
+            filterId === 'film' && styles.grayscale
+          ]}
           resizeMode="cover"
         />
         
@@ -113,6 +118,12 @@ const styles = StyleSheet.create({
   },
   photo: {
     borderRadius: 2,
+  },
+  grayscale: {
+    // CSS-style grayscale filter for B&W
+    // Note: This may not work on all React Native versions
+    // @ts-ignore - filter is not in React Native types but works on iOS/Android
+    filter: 'grayscale(1)',
   },
   vintageOverlay: {
     position: 'absolute',

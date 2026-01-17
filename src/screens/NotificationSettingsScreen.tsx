@@ -195,7 +195,7 @@ export default function NotificationSettingsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
+          <ActivityIndicator size="large" color="#FF5757" />
         </View>
       </SafeAreaView>
     );
@@ -243,8 +243,8 @@ export default function NotificationSettingsScreen() {
             onPress={handleDisableAll}
             disabled={saving}
           >
-            <IconSymbol name="xmark.circle.fill" size={20} color="#FF4444" />
-            <Text style={[styles.quickActionText, { color: '#FF4444' }]}>Disable All</Text>
+            <IconSymbol name="xmark.circle.fill" size={20} color="#FF5757" />
+            <Text style={[styles.quickActionText, { color: '#FF5757' }]}>Disable All</Text>
           </TouchableOpacity>
         </View>
 
@@ -254,7 +254,7 @@ export default function NotificationSettingsScreen() {
             <View key={setting.key} style={styles.settingCard}>
               <View style={styles.settingLeft}>
                 <View style={styles.iconContainer}>
-                  <IconSymbol name={setting.icon} size={24} color="#FF4444" />
+                  <IconSymbol name={setting.icon} size={24} color="#FF5757" />
                 </View>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingTitle}>{setting.title}</Text>
@@ -264,8 +264,8 @@ export default function NotificationSettingsScreen() {
               <Switch
                 value={preferences?.[setting.key] === true}
                 onValueChange={() => handleToggle(setting.key)}
-                trackColor={{ false: '#D1D1D1', true: '#FFB3B3' }}
-                thumbColor={preferences?.[setting.key] ? '#FF4444' : '#F4F4F4'}
+                trackColor={{ false: '#D1D1D1', true: '#FFABAB' }}
+                thumbColor={preferences?.[setting.key] ? '#FF5757' : '#F4F4F4'}
                 disabled={saving || !permissionGranted}
               />
             </View>

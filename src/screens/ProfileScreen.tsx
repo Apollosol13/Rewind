@@ -19,14 +19,16 @@ import {
   Keyboard,
   Linking,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import HandwrittenText from '../components/HandwrittenText';
 import PolaroidFrame from '../components/PolaroidFrame';
+import FilterOverlay from '../components/FilterOverlay';
 import { getCurrentUser, getUserProfile, signOut, updateUserProfile, uploadProfilePicture } from '../services/auth';
 import { getUserPhotos, deletePhoto } from '../services/photos';
 import { getUserStickyNotes, createStickyNote, deleteStickyNote, StickyNote as StickyNoteType } from '../services/stickyNotes';
 import { getFollowerCount, getFollowingCount } from '../services/follows';
+import { validateUsername } from '../utils/usernameValidator';
 import { getNewFollowersCount } from '../services/followerBadge';
 import { Photo, User } from '../config/supabase';
 import StickyNote from '../components/StickyNote';
@@ -78,6 +80,25 @@ export default function ProfileScreen() {
       organizePhotosByMonth();
     }
   }, [photos]);
+
+  // Refresh badge count when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshBadgeCount();
+    }, [])
+  );
+
+  const refreshBadgeCount = async () => {
+    try {
+      const { user: authUser } = await getCurrentUser();
+      if (authUser) {
+        const { count: newFollowers } = await getNewFollowersCount(authUser.id);
+        setNewFollowersCount(newFollowers);
+      }
+    } catch (error) {
+      console.error('Error refreshing badge count:', error);
+    }
+  };
 
   const organizePhotosByMonth = () => {
     const grouped = photos.reduce((acc, photo) => {
@@ -186,6 +207,13 @@ export default function ProfileScreen() {
   const handleUpdateProfile = async () => {
     if (!user || !editUsername.trim()) {
       Alert.alert('Error', 'Username cannot be empty');
+      return;
+    }
+
+    // Validate username
+    const validation = validateUsername(editUsername);
+    if (!validation.valid) {
+      Alert.alert('Invalid Username', validation.error || 'Please choose a different username');
       return;
     }
 
@@ -404,7 +432,7 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           
-          <HandwrittenText size={36} bold>
+          <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>
             @{user?.username || 'username'}
           </HandwrittenText>
           
@@ -416,7 +444,7 @@ export default function ProfileScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{photos.length}</Text>
-              <Text style={styles.statLabel}>Rewinds</Text>
+              <Text style={styles.statLabel}>REWNDs</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity 
@@ -530,10 +558,26 @@ export default function ProfileScreen() {
                           source={{ uri: photo.image_url }}
                           style={styles.polaroidImage}
                         />
-                        {/* Vintage overlay */}
-                        <View style={styles.vintageOverlay} />
-                        {/* Vignette effect */}
-                        <View style={styles.vignette} />
+                        {/* Apply filter overlays based on photo_style */}
+                        <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
+                        
+                        {/* Camcorder UI overlay (REC, corners) */}
+                        {photo.photo_style === 'camcorder' && (
+                          <View style={styles.camcorderThumbnailOverlay}>
+                            {/* Top indicators */}
+                            <View style={styles.camcorderTop}>
+                              <View style={styles.recIndicatorSmall}>
+                                <Text style={styles.recTextSmall}>REC</Text>
+                                <View style={styles.recDotSmall} />
+                              </View>
+                            </View>
+                            {/* Frame corners */}
+                            <View style={styles.cornerSmallTL} />
+                            <View style={styles.cornerSmallTR} />
+                            <View style={styles.cornerSmallBL} />
+                            <View style={styles.cornerSmallBR} />
+                          </View>
+                        )}
                       </View>
                       <View style={styles.polaroidCaption}>
                         <HandwrittenText size={14}>
@@ -597,7 +641,7 @@ export default function ProfileScreen() {
           {photos.length === 0 && (
             <View style={styles.emptyState}>
               <IconSymbol name="camera" size={60} color="#DDD" />
-              <Text style={styles.emptyText}>No Rewinds yet</Text>
+              <Text style={styles.emptyText}>No REWNDs yet</Text>
               <Text style={styles.emptySubtext}>Start capturing memories!</Text>
             </View>
           )}
@@ -679,7 +723,7 @@ export default function ProfileScreen() {
                   handleSignOut();
                 }}
               >
-                <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color="#FF4444" />
+                <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color="#FF5757" />
                 <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Sign Out</Text>
               </TouchableOpacity>
             </View>
@@ -802,7 +846,7 @@ export default function ProfileScreen() {
                   handleDeleteStickyNote(selectedNote.id);
                   setSelectedNote(null);
                 }}>
-                  <IconSymbol name="trash.fill" size={24} color="#FF4444" />
+                  <IconSymbol name="trash.fill" size={24} color="#FF5757" />
                 </TouchableOpacity>
               )}
             </View>
@@ -949,7 +993,14 @@ export default function ProfileScreen() {
                   date={selectedPhoto.created_at}
                   showRainbow={true}
                   width={340}
+                  filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
                 />
+                {/* Debug: Show filter type */}
+                {__DEV__ && (
+                  <Text style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'yellow', padding: 5 }}>
+                    Filter: {selectedPhoto.photo_style || 'none'}
+                  </Text>
+                )}
                 
                 <TouchableOpacity
                   style={styles.menuButton}
@@ -1020,7 +1071,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF4444',
+    color: '#FF5757',
   },
   statLabel: {
     fontSize: 12,
@@ -1034,7 +1085,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   newBadge: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1084,7 +1135,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -1199,6 +1250,85 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
+  // Camcorder thumbnail overlay styles
+  camcorderThumbnailOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+  },
+  camcorderTop: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recIndicatorSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 2,
+    gap: 3,
+  },
+  recTextSmall: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+    fontFamily: 'Courier',
+  },
+  recDotSmall: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FF0000',
+  },
+  cornerSmallTL: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallTR: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallBL: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallBR: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FF0000',
+  },
   polaroidCaption: {
     marginTop: 6,
     alignItems: 'center',
@@ -1304,7 +1434,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   menuItemTextDanger: {
-    color: '#FF4444',
+    color: '#FF5757',
   },
   // Edit Profile Modal
   editModalContainer: {
@@ -1337,7 +1467,7 @@ const styles = StyleSheet.create({
   },
   editModalSave: {
     fontSize: 16,
-    color: '#FF4444',
+    color: '#FF5757',
     fontWeight: '600',
   },
   editModalSaveDisabled: {
@@ -1382,7 +1512,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
@@ -1463,7 +1593,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   addButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,

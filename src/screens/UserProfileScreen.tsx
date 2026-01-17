@@ -348,7 +348,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF4444" />
+        <ActivityIndicator size="large" color="#FF5757" />
       </SafeAreaView>
     );
   }
@@ -396,7 +396,7 @@ export default function UserProfileScreen() {
             </View>
           )}
           
-          <HandwrittenText size={36} bold>
+          <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>
             @{user.username}
           </HandwrittenText>
           
@@ -408,7 +408,7 @@ export default function UserProfileScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{photos.length}</Text>
-              <Text style={styles.statLabel}>Rewinds</Text>
+              <Text style={styles.statLabel}>REWNDs</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity 
@@ -573,7 +573,7 @@ export default function UserProfileScreen() {
           {photos.length === 0 && (
             <View style={styles.emptyState}>
               <IconSymbol name="camera" size={60} color="#DDD" />
-              <Text style={styles.emptyText}>No Rewinds yet</Text>
+              <Text style={styles.emptyText}>No REWNDs yet</Text>
             </View>
           )}
         </View>
@@ -592,7 +592,7 @@ export default function UserProfileScreen() {
               <TouchableOpacity onPress={() => setShowComposeModal(false)}>
                 <IconSymbol name="xmark.circle.fill" size={28} color="#666" />
               </TouchableOpacity>
-              <HandwrittenText size={24} bold>
+              <HandwrittenText size={24} bold style={{ paddingHorizontal: 10 }}>
                 Send to @{user?.username}
               </HandwrittenText>
               <TouchableOpacity
@@ -714,8 +714,8 @@ export default function UserProfileScreen() {
                       handleBlockUser();
                     }}
                   >
-                    <IconSymbol name="person.fill.xmark" size={24} color="#FF4444" />
-                    <Text style={[styles.menuItemText, { color: '#FF4444' }]}>Block User</Text>
+                    <IconSymbol name="person.fill.xmark" size={24} color="#FF5757" />
+                    <Text style={[styles.menuItemText, { color: '#FF5757' }]}>Block User</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF4444',
+    color: '#FF5757',
   },
   statLabel: {
     fontSize: 12,
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   newBadge: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     paddingVertical: 12,
     borderRadius: 25,
     shadowColor: '#000',
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
   },
   unblockLink: {
     fontSize: 15,
-    color: '#FF4444',
+    color: '#FF5757',
     fontWeight: '600',
   },
   menuOverlay: {
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
   sendButton: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF4444',
+    color: '#FF5757',
   },
   sendButtonDisabled: {
     color: '#CCC',

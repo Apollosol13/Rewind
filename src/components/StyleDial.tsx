@@ -2,21 +2,59 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
-export type PhotoStyle = 'polaroid' | 'vintage' | 'sepia' | 'noir' | 'film';
+export type PhotoStyle = 'polaroid' | 'vintage' | 'sepia' | 'legacy' | 'film' | 'camcorder';
 
 interface StyleOption {
   id: PhotoStyle;
   label: string;
   icon: string;
   color: string;
+  description: string;
 }
 
 const STYLE_OPTIONS: StyleOption[] = [
-  { id: 'polaroid', label: 'Polaroid', icon: 'photo', color: '#FF4444' },
-  { id: 'vintage', label: 'Vintage', icon: 'camera.filters', color: '#FFB347' },
-  { id: 'sepia', label: 'Sepia', icon: 'sparkles', color: '#B8956A' },
-  { id: 'noir', label: 'Noir', icon: 'moon.fill', color: '#333333' },
-  { id: 'film', label: 'Film', icon: 'film', color: '#4D96FF' },
+  { 
+    id: 'polaroid', 
+    label: 'Polaroid', 
+    icon: 'photo', 
+    color: '#FF5757',
+    description: '1970s-80s instant film with warm tones and soft focus'
+  },
+  { 
+    id: 'vintage', 
+    label: 'Vintage', 
+    icon: 'camera.filters', 
+    color: '#FFB347',
+    description: '1960s-70s faded colors, reduced contrast, warm nostalgic glow'
+  },
+  { 
+    id: 'sepia', 
+    label: 'Sepia', 
+    icon: 'sparkles', 
+    color: '#B8956A',
+    description: '1900s-1930s aged photo look with brown-tone monochrome'
+  },
+  { 
+    id: 'legacy', 
+    label: 'Legacy', 
+    icon: 'building.columns.fill', 
+    color: '#C9A66B',
+    description: 'Timeless old money aesthetic with warm, muted tones and soft sophistication'
+  },
+  { 
+    id: 'film', 
+    label: 'Film', 
+    icon: 'film', 
+    color: '#4D96FF',
+    description: '1990s-2000s film photography with natural grain and rich colors'
+  },
+  { 
+    id: 'camcorder', 
+    label: 'Camcorder', 
+    icon: 'video.fill', 
+    color: '#9D4EDD',
+    description: '1980s-90s VHS camcorder with scan lines and color bleeding'
+  },
 ];
 
 interface StyleDialProps {

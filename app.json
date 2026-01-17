@@ -63,7 +63,9 @@
       "router": {},
       "eas": {
         "projectId": "a08f49c7-53f3-450d-a487-797c2c32f224"
-      }
+      },
+      "supabaseUrl": "https://rfbbrzenglpgqvhbhpbu.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmYmJyemVuZ2xwZ3F2aGJocGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNTY2NjUsImV4cCI6MjA4MzczMjY2NX0.qcskts_pVdJTH1VpQKHjVBkDNxwBOq2lPpLQ0qj0DDE"
     }
   }
 }

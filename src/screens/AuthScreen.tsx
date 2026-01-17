@@ -150,7 +150,7 @@ export default function AuthScreen() {
             style={styles.cameraIcon}
           />
           <View style={styles.titleContainer}>
-            <HandwrittenText size={48} bold style={{ textAlign: 'center', width: '100%' }}>Rewind</HandwrittenText>
+            <HandwrittenText size={48} bold style={{ textAlign: 'center', width: '100%', paddingHorizontal: 10 }}>REWND</HandwrittenText>
           </View>
           <Text style={styles.tagline}>Capture nostalgic moments</Text>
         </View>
@@ -223,7 +223,7 @@ export default function AuthScreen() {
 
             {pendingVerificationEmail ? (
               <View style={styles.verificationNotice}>
-                <IconSymbol name="envelope.fill" size={40} color="#FF4444" />
+                <IconSymbol name="envelope.fill" size={40} color="#FF5757" />
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
                 <Text style={styles.verificationText}>
                   We sent a verification link to{'\n'}
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   submitButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   legalLink: {
-    color: '#FF4444',
+    color: '#FF5757',
     textDecorationLine: 'underline',
   },
   ageCheckbox: {
@@ -440,8 +440,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#FF4444',
-    borderColor: '#FF4444',
+    backgroundColor: '#FF5757',
+    borderColor: '#FF5757',
   },
   ageCheckboxText: {
     fontSize: 14,
@@ -487,10 +487,10 @@ const styles = StyleSheet.create({
   },
   verificationEmail: {
     fontWeight: '600',
-    color: '#FF4444',
+    color: '#FF5757',
   },
   resendButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 24,

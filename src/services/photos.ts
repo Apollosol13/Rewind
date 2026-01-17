@@ -10,7 +10,8 @@ import { sendPhotoLikedNotification, sendPhotoCommentedNotification } from './no
 export async function uploadPhoto(
   imageUri: string,
   caption: string,
-  userId: string
+  userId: string,
+  photoStyle?: string
 ) {
   try {
     // 1. Read file as base64
@@ -47,6 +48,7 @@ export async function uploadPhoto(
           caption: caption,
           prompt_time: new Date().toISOString(),
           created_at: new Date().toISOString(),
+          photo_style: photoStyle || 'polaroid',
         },
       ])
       .select()

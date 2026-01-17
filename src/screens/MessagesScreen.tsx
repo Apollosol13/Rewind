@@ -115,7 +115,7 @@ export default function MessagesScreen() {
           style={styles.composeButton}
           onPress={() => setShowComposeModal(true)}
         >
-          <IconSymbol name="square.and.pencil" size={24} color="#FF4444" />
+          <IconSymbol name="square.and.pencil" size={24} color="#FF5757" />
         </TouchableOpacity>
       </View>
 
@@ -147,7 +147,7 @@ export default function MessagesScreen() {
       {/* Messages List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
+          <ActivityIndicator size="large" color="#FF5757" />
         </View>
       ) : (
         <ScrollView
@@ -227,7 +227,7 @@ export default function MessagesScreen() {
               <TouchableOpacity onPress={() => setSelectedMessage(null)}>
                 <IconSymbol name="xmark.circle.fill" size={28} color="#666" />
               </TouchableOpacity>
-              <HandwrittenText size={24} bold>
+              <HandwrittenText size={24} bold style={{ paddingHorizontal: 10 }}>
                 {activeTab === 'inbox' ? 'From' : 'To'}: @
                 {activeTab === 'inbox'
                   ? selectedMessage?.sender?.username
@@ -236,7 +236,7 @@ export default function MessagesScreen() {
               <TouchableOpacity
                 onPress={() => selectedMessage && handleDeleteMessage(selectedMessage.id)}
               >
-                <IconSymbol name="trash.fill" size={24} color="#FF4444" />
+                <IconSymbol name="trash.fill" size={24} color="#FF5757" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -361,7 +361,7 @@ function ComposeMessageModal({
               <View style={styles.section}>
                 <HandwrittenText size={18} bold>Send to:</HandwrittenText>
                 {loading ? (
-                  <ActivityIndicator style={{ marginTop: 20 }} color="#FF4444" />
+                  <ActivityIndicator style={{ marginTop: 20 }} color="#FF5757" />
                 ) : mutualFollowers.length === 0 ? (
                   <Text style={styles.noFollowersText}>
                     No mutual followers yet. Follow someone and have them follow you back!
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activeTab: {
-    borderBottomColor: '#FF4444',
+    borderBottomColor: '#FF5757',
   },
   tabText: {
     fontSize: 16,
@@ -511,11 +511,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#FF4444',
+    color: '#FF5757',
     fontWeight: '700',
   },
   unreadBadge: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     borderRadius: 25,
   },
   emptyButtonText: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     zIndex: 10,
   },
   messageHeader: {
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   sendButton: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF4444',
+    color: '#FF5757',
   },
   sendButtonDisabled: {
     color: '#CCC',
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   },
   changeButton: {
     fontSize: 14,
-    color: '#FF4444',
+    color: '#FF5757',
     fontWeight: '600',
   },
   colorSection: {

@@ -90,7 +90,7 @@ export default function PhotoCard({
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => photo.users?.id && router.push(`/user/${photo.users.id}`)}>
-          <HandwrittenText size={18} bold>@{photo.users?.username || 'Unknown'}</HandwrittenText>
+          <HandwrittenText size={18} bold style={{ paddingHorizontal: 5 }}>@{photo.users?.username || 'Unknown'}</HandwrittenText>
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.time}>{getRelativeTime(photo.created_at)}</Text>
@@ -109,6 +109,7 @@ export default function PhotoCard({
         date={photo.created_at}
         showRainbow={true}
         width={340}
+        filterId={photo.photo_style as any || 'polaroid'}
       />
 
       {/* Action Buttons */}
@@ -120,7 +121,7 @@ export default function PhotoCard({
           <IconSymbol 
             name={isLiked ? "heart.fill" : "heart"} 
             size={28} 
-            color={isLiked ? "#FF4444" : "#333"} 
+            color={isLiked ? "#FF5757" : "#333"} 
           />
         </TouchableOpacity>
         
@@ -155,7 +156,7 @@ export default function PhotoCard({
                   onPress={() => handleDeleteComment(comment.id)}
                   style={styles.deleteButton}
                 >
-                  <IconSymbol name="trash" size={14} color="#FF4444" />
+                  <IconSymbol name="trash" size={14} color="#FF5757" />
                 </TouchableOpacity>
               )}
             </View>
@@ -191,7 +192,7 @@ export default function PhotoCard({
             <IconSymbol 
               name="paperplane.fill" 
               size={24} 
-              color={commentText.trim() ? "#FF4444" : "#CCC"} 
+              color={commentText.trim() ? "#FF5757" : "#CCC"} 
             />
           </TouchableOpacity>
         </View>

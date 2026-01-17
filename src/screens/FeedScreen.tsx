@@ -229,7 +229,7 @@ export default function FeedScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <HandwrittenText size={36} bold>Rewind</HandwrittenText>
+      <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>REWND</HandwrittenText>
       <Text style={styles.subtitle}>Today's memories</Text>
     </View>
   );
@@ -242,7 +242,7 @@ export default function FeedScreen() {
         color="#CCCCCC"
         style={styles.emptyCameraIcon}
       />
-      <HandwrittenText size={26} bold>No Rewinds yet</HandwrittenText>
+      <HandwrittenText size={26} bold style={{ paddingHorizontal: 10 }}>No REWNDs yet</HandwrittenText>
       <Text style={styles.emptyText}>
         Be the first to capture a moment!
       </Text>
@@ -250,7 +250,7 @@ export default function FeedScreen() {
         style={styles.captureButton}
         onPress={() => router.push('/camera')}
       >
-        <Text style={styles.captureButtonText}>Take a Rewind</Text>
+        <Text style={styles.captureButtonText}>Take a REWND</Text>
       </TouchableOpacity>
     </View>
   );
@@ -258,7 +258,7 @@ export default function FeedScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF4444" />
+        <ActivityIndicator size="large" color="#FF5757" />
         <HandwrittenText size={20} style={styles.loadingText}>
           Loading memories...
         </HandwrittenText>
@@ -294,7 +294,7 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF4444"
+            tintColor="#FF5757"
           />
         }
         contentContainerStyle={photos.length === 0 ? styles.emptyList : undefined}
@@ -331,7 +331,7 @@ export default function FeedScreen() {
               <TouchableOpacity onPress={closePhotoDetail}>
                 <IconSymbol name="xmark" size={24} color="#333" />
               </TouchableOpacity>
-              <HandwrittenText size={20} bold>
+              <HandwrittenText size={20} bold style={{ paddingHorizontal: 10 }}>
                 @{selectedPhoto?.users?.username}
               </HandwrittenText>
               <View style={{ width: 24 }} />
@@ -347,6 +347,7 @@ export default function FeedScreen() {
                     date={selectedPhoto.created_at}
                     showRainbow={true}
                     width={340}
+                    filterId={selectedPhoto.photo_style as any || 'polaroid'}
                   />
                 </View>
               )}
@@ -360,7 +361,7 @@ export default function FeedScreen() {
                   <IconSymbol 
                     name={selectedPhoto && photoLikes[selectedPhoto.id] ? "heart.fill" : "heart"} 
                     size={28} 
-                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#FF4444" : "#333"} 
+                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#FF5757" : "#333"} 
                   />
                   <Text style={styles.actionCount}>{selectedPhoto?.likes_count || 0}</Text>
                 </TouchableOpacity>
@@ -379,12 +380,12 @@ export default function FeedScreen() {
                   <View key={comment.id}>
                     <View style={styles.commentItem}>
                       <View style={styles.commentHeader}>
-                        <HandwrittenText size={14} bold>
+                        <HandwrittenText size={14} bold style={{ paddingHorizontal: 5 }}>
                           @{comment.users?.username}
                         </HandwrittenText>
                         {comment.user_id === currentUserId && (
                           <TouchableOpacity onPress={() => handleModalDeleteComment(comment.id)}>
-                            <IconSymbol name="trash" size={16} color="#FF4444" />
+                            <IconSymbol name="trash" size={16} color="#FF5757" />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -398,12 +399,12 @@ export default function FeedScreen() {
                     {selectedPhoto && photoComments[selectedPhoto.id]?.filter(c => c.parent_comment_id === comment.id).map((reply) => (
                       <View key={reply.id} style={styles.replyItem}>
                         <View style={styles.commentHeader}>
-                          <HandwrittenText size={12} bold>
+                          <HandwrittenText size={12} bold style={{ paddingHorizontal: 5 }}>
                             @{reply.users?.username}
                           </HandwrittenText>
                           {reply.user_id === currentUserId && (
                             <TouchableOpacity onPress={() => handleModalDeleteComment(reply.id)}>
-                              <IconSymbol name="trash" size={14} color="#FF4444" />
+                              <IconSymbol name="trash" size={14} color="#FF5757" />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -448,7 +449,7 @@ export default function FeedScreen() {
                   <IconSymbol 
                     name="paperplane.fill" 
                     size={24} 
-                    color={commentText.trim() ? "#FF4444" : "#CCC"} 
+                    color={commentText.trim() ? "#FF5757" : "#CCC"} 
                   />
                 </TouchableOpacity>
               </View>
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   captureButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   },
   replyButton: {
     fontSize: 12,
-    color: '#FF4444',
+    color: '#FF5757',
     fontWeight: '600',
   },
   replyItem: {

@@ -13,14 +13,17 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import CameraButton from '../components/CameraButton';
 import PolaroidFrame from '../components/PolaroidFrame';
 import HandwrittenText from '../components/HandwrittenText';
 import StyleDial, { PhotoStyle } from '../components/StyleDial';
+import CamcorderOverlay from '../components/CamcorderOverlay';
+import FilterOverlay from '../components/FilterOverlay';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { uploadPhoto } from '../services/photos';
+import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
@@ -29,6 +32,7 @@ import * as Haptics from 'expo-haptics';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
+  const [flash, setFlash] = useState<FlashMode>('off');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -47,9 +51,9 @@ export default function CameraScreen() {
     }
   }, []);
 
-  // Check daily post status on mount
+  // TEMPORARILY DISABLED FOR TESTING - Check daily post status on mount
   useEffect(() => {
-    checkDailyPostStatus();
+    // checkDailyPostStatus();
     updateTimeRemaining();
     
     // Update countdown every minute
@@ -94,15 +98,15 @@ export default function CameraScreen() {
   }
 
   const takePicture = async () => {
-    // Check if user has already posted today
-    if (alreadyPosted) {
-      Alert.alert(
-        '📸 Already Posted Today!',
-        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-        [{ text: 'OK', style: 'default' }]
-      );
-      return;
-    }
+    // TEMPORARILY DISABLED FOR TESTING - Check if user has already posted today
+    // if (alreadyPosted) {
+    //   Alert.alert(
+    //     '📸 Already Posted Today!',
+    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+    //     [{ text: 'OK', style: 'default' }]
+    //   );
+    //   return;
+    // }
 
     if (cameraRef.current) {
       try {
@@ -135,7 +139,7 @@ export default function CameraScreen() {
         return;
       }
 
-      const { photo, error } = await uploadPhoto(capturedImage, caption, user.id);
+      const { photo, error } = await uploadPhoto(capturedImage, caption, user.id, photoStyle);
       
       if (error) {
         Alert.alert('Error', 'Failed to upload photo. Please try again.');
@@ -171,6 +175,11 @@ export default function CameraScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const toggleFlash = () => {
+    setFlash(current => current === 'off' ? 'on' : 'off');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   // Preview modal after capturing
   if (capturedImage) {
     return (
@@ -184,17 +193,20 @@ export default function CameraScreen() {
           </TouchableOpacity>
           
           <View style={styles.previewHeader}>
-            <HandwrittenText size={28} bold>Your Rewind</HandwrittenText>
+            <HandwrittenText size={28} bold style={{ paddingHorizontal: 10 }}>Your REWND</HandwrittenText>
           </View>
 
           <View style={styles.previewContent}>
-            <PolaroidFrame
-              imageUri={capturedImage}
-              caption={caption}
-              date={new Date()}
-              showRainbow={true}
-              width={340}
-            />
+            <View style={styles.previewImageContainer}>
+              <PolaroidFrame
+                imageUri={capturedImage}
+                caption={caption}
+                date={new Date()}
+                showRainbow={true}
+                width={340}
+                filterId={photoStyle}
+              />
+            </View>
 
             <KeyboardAvoidingView 
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -238,73 +250,112 @@ export default function CameraScreen() {
     );
   }
 
-  // Camera view
+  // Polaroid Camera UI
   return (
     <View style={styles.container}>
-      {/* Back button */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backIcon}>✕</Text>
-      </TouchableOpacity>
+      {/* Polaroid Camera Body */}
+      <View style={styles.polaroidBody}>
+        {/* Top Section - Viewfinder & Controls */}
+        <View style={styles.topSection}>
+          {/* Back button (subtle) */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backIcon}>✕</Text>
+          </TouchableOpacity>
 
-      {/* Polaroid Camera Frame */}
-      <View style={styles.cameraFrame}>
-        {/* Rainbow stripe at top */}
-        <View style={styles.rainbowContainer}>
-          <View style={styles.rainbowStripe}>
-            <View style={[styles.stripe, { backgroundColor: '#FF6B6B' }]} />
-            <View style={[styles.stripe, { backgroundColor: '#FFA500' }]} />
-            <View style={[styles.stripe, { backgroundColor: '#FFD93D' }]} />
-            <View style={[styles.stripe, { backgroundColor: '#6BCB77' }]} />
-            <View style={[styles.stripe, { backgroundColor: '#4D96FF' }]} />
-            <View style={[styles.stripe, { backgroundColor: '#9D84B7' }]} />
+          {/* REWND Branding */}
+          <View style={styles.brandingTop}>
+            <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
           </View>
+
+          {/* Flash Toggle */}
+          <TouchableOpacity 
+            style={styles.flashToggle} 
+            onPress={toggleFlash}
+          >
+            <View style={[
+              styles.flashToggleTrack,
+              flash !== 'off' && styles.flashToggleTrackActive
+            ]}>
+              <View style={[
+                styles.flashToggleThumb,
+                flash !== 'off' && styles.flashToggleThumbActive
+              ]}>
+                <Text style={styles.flashToggleIcon}>⚡</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <CameraView 
-          style={styles.camera}
-          facing={facing}
-          ref={cameraRef}
-        />
-      </View>
-
-      {/* Daily Post Status Banner */}
-      {!checkingStatus && alreadyPosted && (
-        <View style={styles.statusBanner}>
-          <IconSymbol name="checkmark.circle.fill" size={20} color="#4CAF50" />
-          <Text style={styles.statusText}>
-            Posted today! Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
-          </Text>
+        {/* Rainbow Stripe */}
+        <View style={styles.rainbowStripe}>
+          <View style={[styles.stripe, { backgroundColor: '#FF5757' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#FFA500' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#FFD93D' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#6BCB77' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#4D96FF' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#9D84B7' }]} />
         </View>
-      )}
 
-      {/* Polaroid branding */}
-      <View style={styles.brandingContainer}>
-        <HandwrittenText size={32} bold>Rewind</HandwrittenText>
-        <Text style={styles.tagline}>
-          {alreadyPosted ? 'See you tomorrow!' : 'Capture the moment'}
-        </Text>
-      </View>
-
-      {/* Controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity 
-          style={styles.flipButton} 
-          onPress={toggleCameraFacing}
-        >
-          <Text style={styles.flipIcon}>🔄</Text>
-        </TouchableOpacity>
-
-        <CameraButton onPress={takePicture} />
-
-        <View style={styles.dialContainer}>
-          <StyleDial 
-            selectedStyle={photoStyle}
-            onStyleChange={setPhotoStyle}
+        {/* LCD Screen */}
+        <View style={styles.lcdFrame}>
+          <CameraView 
+            style={styles.camera}
+            facing={facing}
+            flash={flash}
+            ref={cameraRef}
           />
+
+          {/* Filter overlay - applies image effects for all filters */}
+          <FilterOverlay filterId={photoStyle} />
+          
+          {/* Camcorder UI overlay - REC indicator, frame corners, etc. */}
+          {shouldShowFilterOverlay(photoStyle) && (
+            <CamcorderOverlay timestamp={new Date()} />
+          )}
         </View>
+
+        {/* TEMPORARILY DISABLED FOR TESTING - Daily Post Status */}
+        {/* {!checkingStatus && alreadyPosted && (
+          <View style={styles.statusBanner}>
+            <Text style={styles.statusTextSmall}>
+              ✓ Posted • Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
+            </Text>
+          </View>
+        )} */}
+
+        {/* Bottom Controls Section */}
+        <View style={styles.controlsSection}>
+          {/* Filter Mode Dial */}
+          <View style={styles.modeDialSection}>
+            <StyleDial 
+              selectedStyle={photoStyle}
+              onStyleChange={setPhotoStyle}
+            />
+          </View>
+
+          {/* Big Shutter Button */}
+          <View style={styles.shutterSection}>
+            <TouchableOpacity 
+              style={styles.bigShutterButton}
+              onPress={takePicture}
+              activeOpacity={0.7}
+            >
+              <View style={styles.shutterButtonInner} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Flip Camera Button */}
+          <TouchableOpacity 
+            style={styles.flipCameraButton}
+            onPress={toggleCameraFacing}
+          >
+            <Text style={styles.flipCameraText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     </View>
   );
@@ -313,30 +364,77 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F0',
-    justifyContent: 'center',
+    backgroundColor: '#E8E5DC',
+  },
+  polaroidBody: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#E8E5DC',
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 15,
+  },
+  topSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backIcon: {
+    fontSize: 18,
+    color: '#333',
+    fontWeight: '600',
+  },
+  brandingTop: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    overflow: 'visible',
+  },
+  brandText: {
+    color: '#333',
+    paddingRight: 8,
+  },
+  flashToggle: {
+    padding: 4,
+  },
+  flashToggleTrack: {
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  flashToggleTrackActive: {
+    backgroundColor: '#FFD93D',
+  },
+  flashToggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 3,
-    zIndex: 10,
   },
-  backIcon: {
-    fontSize: 24,
-    color: '#333',
-    fontWeight: '600',
+  flashToggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  flashToggleIcon: {
+    fontSize: 14,
   },
   permissionContainer: {
     flex: 1,
@@ -351,7 +449,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   permissionButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
@@ -378,71 +476,107 @@ const styles = StyleSheet.create({
   },
   rainbowStripe: {
     flexDirection: 'row',
-    width: 60,
-    height: 8,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
+    marginBottom: 10,
   },
   stripe: {
     flex: 1,
   },
+  lcdFrame: {
+    width: '100%',
+    aspectRatio: 0.85,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 6,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   camera: {
-    aspectRatio: 1,
+    width: '100%',
+    height: '100%',
     borderRadius: 4,
     overflow: 'hidden',
   },
   statusBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.15)',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    marginTop: 10,
-    gap: 8,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
   },
-  statusText: {
-    fontSize: 14,
+  statusTextSmall: {
+    fontSize: 11,
     color: '#2C5F2D',
     fontWeight: '600',
   },
-  brandingContainer: {
+  controlsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 25,
+    paddingHorizontal: 10,
     marginTop: 20,
   },
-  tagline: {
-    fontSize: 14,
+  modeDialSection: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  modeLabel: {
+    fontSize: 9,
+    fontWeight: '700',
     color: '#666',
-    marginTop: 4,
+    marginBottom: 4,
     letterSpacing: 1,
   },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  shutterSection: {
     alignItems: 'center',
-    paddingVertical: 30,
+    justifyContent: 'center',
+    flex: 1,
   },
-  flipButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'white',
+  bigShutterButton: {
+    width: 75,
+    height: 75,
+    borderRadius: 37.5,
+    backgroundColor: '#FF5757',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#FF5757',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 4,
+    borderColor: '#FFF',
+  },
+  shutterButtonInner: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FF3333',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 3,
   },
-  flipIcon: {
-    fontSize: 28,
-  },
-  dialContainer: {
-    width: 100,
-    alignItems: 'center',
+  flipCameraButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  flipCameraText: {
+    fontSize: 24,
   },
   previewContainer: {
     flex: 1,
@@ -472,6 +606,9 @@ const styles = StyleSheet.create({
   },
   previewContent: {
     alignItems: 'center',
+  },
+  previewImageContainer: {
+    position: 'relative',
   },
   captionContainer: {
     width: '100%',
@@ -510,7 +647,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   shareButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#FF5757',
   },
   actionButtonText: {
     color: 'white',

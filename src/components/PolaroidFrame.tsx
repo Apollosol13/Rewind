@@ -2,6 +2,10 @@ import React from 'react';
 import { View, Image, StyleSheet, Dimensions } from 'react-native';
 import HandwrittenText from './HandwrittenText';
 import { formatPolaroidDate } from '../utils/dateFormatter';
+import FilterOverlay from './FilterOverlay';
+import CamcorderOverlay from './CamcorderOverlay';
+import { PhotoStyle } from './StyleDial';
+import { shouldShowFilterOverlay } from '../utils/filterPresets';
 
 interface PolaroidFrameProps {
   imageUri: string;
@@ -9,6 +13,7 @@ interface PolaroidFrameProps {
   date?: Date | string;
   showRainbow?: boolean;
   width?: number;
+  filterId?: PhotoStyle;
 }
 
 export default function PolaroidFrame({
@@ -17,6 +22,7 @@ export default function PolaroidFrame({
   date = new Date(),
   showRainbow = true,
   width = 320,
+  filterId = 'polaroid',
 }: PolaroidFrameProps) {
   const imageSize = width - 40; // Account for padding
   const photoDate = typeof date === 'string' ? new Date(date) : date;
@@ -44,10 +50,17 @@ export default function PolaroidFrame({
           style={[styles.photo, { width: imageSize, height: imageSize }]}
           resizeMode="cover"
         />
-        {/* Vintage overlay for warm/sepia tone */}
-        <View style={[styles.vintageOverlay, { width: imageSize, height: imageSize }]} />
-        {/* Vignette effect (darkened corners) */}
-        <View style={[styles.vignette, { width: imageSize, height: imageSize }]} />
+        
+        {/* Filter-specific overlays */}
+        <View style={[StyleSheet.absoluteFill, { width: imageSize, height: imageSize }]}>
+          {/* Apply filter effects for all filters */}
+          <FilterOverlay filterId={filterId} />
+          
+          {/* Camcorder UI overlay - REC, frame corners, etc. */}
+          {shouldShowFilterOverlay(filterId) && (
+            <CamcorderOverlay timestamp={photoDate} />
+          )}
+        </View>
       </View>
 
       {/* Bottom section with date and caption */}

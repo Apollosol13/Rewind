@@ -1,8 +1,10 @@
 import { manipulateAsync, SaveFormat, FlipType } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import { applyFilter } from './filterPresets';
 
 /**
  * Create a Polaroid-style image with frame, date, and caption
+ * Applies authentic 1970s-80s instant film characteristics
  */
 export async function createPolaroidImage(
   imageUri: string,
@@ -17,9 +19,12 @@ export async function createPolaroidImage(
       { compress: 0.9, format: SaveFormat.JPEG }
     );
 
+    // Apply polaroid filter effect (requires filter library for full effect)
+    const filteredImage = await applyFilter(squareImage.uri, 'polaroid');
+
     // For now, return the processed image
     // The Polaroid frame will be overlaid in the UI component
-    return squareImage.uri;
+    return filteredImage;
   } catch (error) {
     console.error('Error creating Polaroid image:', error);
     throw error;
@@ -37,25 +42,91 @@ export function formatPolaroidDate(date: Date): string {
 }
 
 /**
- * Apply vintage filter effect
+ * Apply vintage filter effect (1960s-70s Kodachrome aesthetic)
+ * Warm tones, faded colors, reduced contrast
  */
 export async function applyVintageFilter(imageUri: string): Promise<string> {
   try {
-    // Basic image processing
-    // For more advanced filters, you'd integrate with a library like react-native-image-filter-kit
+    // Resize first
     const processed = await manipulateAsync(
       imageUri,
-      [
-        { resize: { width: 1000 } },
-        // Add slight rotation for authentic Polaroid feel (optional)
-        // { rotate: Math.random() * 4 - 2 }, // Random -2 to 2 degrees
-      ],
+      [{ resize: { width: 1000 } }],
       { compress: 0.85, format: SaveFormat.JPEG }
     );
 
-    return processed.uri;
+    // Apply vintage filter preset (requires filter library for full effect)
+    return await applyFilter(processed.uri, 'vintage');
   } catch (error) {
     console.error('Error applying vintage filter:', error);
+    throw error;
+  }
+}
+
+/**
+ * Apply sepia filter (1900s-1930s aged photo look)
+ */
+export async function applySepiaFilter(imageUri: string): Promise<string> {
+  try {
+    const processed = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 1000 } }],
+      { compress: 0.85, format: SaveFormat.JPEG }
+    );
+    return await applyFilter(processed.uri, 'sepia');
+  } catch (error) {
+    console.error('Error applying sepia filter:', error);
+    throw error;
+  }
+}
+
+/**
+ * Apply legacy filter (Timeless old money aesthetic with warm muted tones)
+ */
+export async function applyLegacyFilter(imageUri: string): Promise<string> {
+  try {
+    const processed = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 1000 } }],
+      { compress: 0.9, format: SaveFormat.JPEG }
+    );
+    return await applyFilter(processed.uri, 'legacy');
+  } catch (error) {
+    console.error('Error applying legacy filter:', error);
+    throw error;
+  }
+}
+
+/**
+ * Apply film filter (1990s-2000s modern film photography)
+ */
+export async function applyFilmFilter(imageUri: string): Promise<string> {
+  try {
+    const processed = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 1000 } }],
+      { compress: 0.9, format: SaveFormat.JPEG }
+    );
+    return await applyFilter(processed.uri, 'film');
+  } catch (error) {
+    console.error('Error applying film filter:', error);
+    throw error;
+  }
+}
+
+/**
+ * Apply camcorder filter (1980s-90s VHS/Hi8 video aesthetic)
+ * Scan lines, color bleeding, tape artifacts
+ */
+export async function applyCamcorderFilter(imageUri: string): Promise<string> {
+  try {
+    const processed = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 1000 } }],
+      { compress: 0.8, format: SaveFormat.JPEG }
+    );
+    return await applyFilter(processed.uri, 'camcorder');
+  } catch (error) {
+    console.error('Error applying camcorder filter:', error);
     throw error;
   }
 }

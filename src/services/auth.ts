@@ -2,6 +2,7 @@ import { supabase } from '../config/supabase';
 import { registerPushToken } from './notifications';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
+import { validateUsername } from '../utils/usernameValidator';
 
 export interface AuthUser {
   id: string;
@@ -14,6 +15,17 @@ export interface AuthUser {
  */
 export async function signUp(email: string, password: string, username: string) {
   try {
+    // Validate username
+    const validation = validateUsername(username);
+    if (!validation.valid) {
+      return { 
+        user: null, 
+        session: null, 
+        needsEmailVerification: false, 
+        error: new Error(validation.error) 
+      };
+    }
+
     // 1. Create auth user with metadata (trigger will create profile)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,

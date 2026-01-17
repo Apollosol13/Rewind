@@ -8,7 +8,7 @@ export default function FollowList() {
         options={{
           title: '',
           headerStyle: { backgroundColor: '#FAF9F6' },
-          headerTintColor: '#FF4444',
+          headerTintColor: '#FF5757',
           headerShadowVisible: false,
         }}
       />

@@ -114,7 +114,7 @@ daily_prompts (id, prompt_time, created_at)
 
 ### Color Palette
 - **Background:** #F5F5F0 (Cream white - aged paper feel)
-- **Primary:** #FF4444 (Warm red - Polaroid shutter)
+- **Primary:** #FF5757 (Coral red - Polaroid shutter)
 - **Text:** #333 (Dark gray)
 - **Secondary Text:** #666, #999 (Muted grays)
 - **White:** #FFFFFF (Polaroid frames)

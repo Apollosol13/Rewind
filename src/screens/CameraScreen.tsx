@@ -68,7 +68,12 @@ export default function CameraScreen() {
   const checkDailyPostStatus = async () => {
     const { user } = await getCurrentUser();
     if (user) {
-      const { hasPosted } = await hasPostedToday(user.id);
+      console.log('📅 Checking daily post status for user:', user.id);
+      const { hasPosted, photoId, error } = await hasPostedToday(user.id);
+      console.log('📅 Has posted today?', hasPosted, 'Photo ID:', photoId);
+      if (error) {
+        console.error('📅 Error checking daily post:', error);
+      }
       setAlreadyPosted(hasPosted);
     }
     setCheckingStatus(false);

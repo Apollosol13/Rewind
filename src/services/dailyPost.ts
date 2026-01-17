@@ -14,14 +14,17 @@ export interface DailyPost {
 export async function hasPostedToday(userId: string) {
   try {
     const today = new Date().toISOString().split('T')[0];
+    console.log('📅 Checking for posts on date:', today, 'for user:', userId);
     
     const { data, error } = await supabase
       .from('daily_posts')
-      .select('id, photo_id')
+      .select('id, photo_id, post_date')
       .eq('user_id', userId)
       .eq('post_date', today)
       .maybeSingle();
 
+    console.log('📅 Query result:', data ? `Found post: ${data.id}` : 'No post found', 'Error:', error?.message || 'none');
+    
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
     return { hasPosted: !!data, photoId: data?.photo_id, error: null };
   } catch (error) {

@@ -1,9 +1,12 @@
-import Filter from 'bad-words';
-
-const filter = new Filter();
-
-// You can add custom words here if needed
-// filter.addWords('customword1', 'customword2');
+// Lightweight profanity filter - no regex, just array lookups
+const BLOCKED_WORDS = [
+  'fuck', 'shit', 'bitch', 'ass', 'cunt', 'dick', 'cock', 'pussy', 'nigger', 'nigga',
+  'fag', 'faggot', 'retard', 'rape', 'nazi', 'hitler', 'kkk', 'chink', 'spic',
+  'kike', 'wetback', 'beaner', 'gook', 'jap', 'paki', 'raghead', 'towelhead',
+  'whore', 'slut', 'coon', 'tranny', 'dyke', 'homo', 'porn', 'sex', 'xxx',
+  // Leetspeak variations
+  'fuk', 'fck', 'sht', 'btch', 'dck', 'ngg', 'fgt', 'rtrd', 'nzi'
+];
 
 export interface UsernameValidation {
   valid: boolean;
@@ -25,9 +28,11 @@ export function validateUsername(username: string): UsernameValidation {
     return { valid: false, error: 'Username must be less than 20 characters' };
   }
   
-  // Check for profanity and inappropriate content
-  if (filter.isProfane(trimmed)) {
-    return { valid: false, error: 'Username contains inappropriate content' };
+  // Check for blocked words (simple substring match)
+  for (const word of BLOCKED_WORDS) {
+    if (trimmed.includes(word)) {
+      return { valid: false, error: 'Username contains inappropriate content' };
+    }
   }
   
   // Check alphanumeric + underscore only

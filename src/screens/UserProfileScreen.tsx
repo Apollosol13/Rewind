@@ -25,6 +25,7 @@ import { reportUser, ReportReason, getReasonDisplayText } from '../services/repo
 import { User, Photo } from '../config/supabase';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import HandwrittenText from '../components/HandwrittenText';
+import FilterOverlay from '../components/FilterOverlay';
 import PolaroidFrame from '../components/PolaroidFrame';
 import { getCurrentUser } from '../services/auth';
 

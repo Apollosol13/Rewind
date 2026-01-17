@@ -995,12 +995,6 @@ export default function ProfileScreen() {
                   width={340}
                   filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
                 />
-                {/* Debug: Show filter type */}
-                {__DEV__ && (
-                  <Text style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'yellow', padding: 5 }}>
-                    Filter: {selectedPhoto.photo_style || 'none'}
-                  </Text>
-                )}
                 
                 <TouchableOpacity
                   style={styles.menuButton}

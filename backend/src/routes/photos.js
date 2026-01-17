@@ -23,9 +23,10 @@ router.post('/upload', authenticateUser, uploadSinglePhoto, handleUploadError, a
 
     console.log(`📸 Processing photo upload for user: ${req.user.id}`);
     console.log(`   Original size: ${Math.round(req.file.size / 1024)}KB`);
+    console.log(`   Photo style: ${req.body.photoStyle || 'none'}`);
 
-    // Process image (compress + generate thumbnail)
-    const processed = await processPhotoForUpload(req.file.buffer);
+    // Process image (compress + generate thumbnail + apply filters)
+    const processed = await processPhotoForUpload(req.file.buffer, req.body.photoStyle);
 
     // Upload main image to Supabase Storage
     const imageUpload = await uploadImage(

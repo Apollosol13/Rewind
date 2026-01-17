@@ -16,12 +16,21 @@ const config = {
 /**
  * Compress and resize image to standard size
  * @param {Buffer} imageBuffer - Original image buffer
+ * @param {string} photoStyle - Photo style/filter (e.g. 'film' for B&W)
  * @returns {Promise<Buffer>} - Compressed image buffer
  */
-export async function compressImage(imageBuffer) {
+export async function compressImage(imageBuffer, photoStyle = null) {
   try {
-    const compressed = await sharp(imageBuffer)
-      .rotate() // Auto-rotate based on EXIF orientation
+    let pipeline = sharp(imageBuffer)
+      .rotate(); // Auto-rotate based on EXIF orientation
+    
+    // Apply B&W conversion for 'film' filter
+    if (photoStyle === 'film') {
+      console.log('🎨 Applying B&W grayscale conversion...');
+      pipeline = pipeline.grayscale();
+    }
+    
+    const compressed = await pipeline
       .resize(config.maxWidth, config.maxHeight, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -45,12 +54,20 @@ export async function compressImage(imageBuffer) {
 /**
  * Generate thumbnail for feed display
  * @param {Buffer} imageBuffer - Original image buffer
+ * @param {string} photoStyle - Photo style/filter (e.g. 'film' for B&W)
  * @returns {Promise<Buffer>} - Thumbnail buffer
  */
-export async function generateThumbnail(imageBuffer) {
+export async function generateThumbnail(imageBuffer, photoStyle = null) {
   try {
-    const thumbnail = await sharp(imageBuffer)
-      .rotate() // Auto-rotate based on EXIF orientation
+    let pipeline = sharp(imageBuffer)
+      .rotate(); // Auto-rotate based on EXIF orientation
+    
+    // Apply B&W conversion for 'film' filter
+    if (photoStyle === 'film') {
+      pipeline = pipeline.grayscale();
+    }
+    
+    const thumbnail = await pipeline
       .resize(config.thumbnailWidth, null, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -146,9 +163,10 @@ export async function validateImage(imageBuffer) {
  * Process photo for upload
  * Compresses main image and generates thumbnail
  * @param {Buffer} imageBuffer - Original image buffer
+ * @param {string} photoStyle - Photo style/filter (e.g. 'film' for B&W)
  * @returns {Promise<Object>} - Processed images and metadata
  */
-export async function processPhotoForUpload(imageBuffer) {
+export async function processPhotoForUpload(imageBuffer, photoStyle = null) {
   try {
     // Validate image first
     const validation = await validateImage(imageBuffer);
@@ -156,10 +174,12 @@ export async function processPhotoForUpload(imageBuffer) {
       throw new Error(validation.error);
     }
 
+    console.log(`📸 Processing image with filter: ${photoStyle || 'none'}`);
+
     // Process images in parallel for speed
     const [compressedImage, thumbnail, metadata] = await Promise.all([
-      compressImage(imageBuffer),
-      generateThumbnail(imageBuffer),
+      compressImage(imageBuffer, photoStyle),
+      generateThumbnail(imageBuffer, photoStyle),
       getImageMetadata(imageBuffer),
     ]);
 
@@ -172,6 +192,9 @@ export async function processPhotoForUpload(imageBuffer) {
     console.log(`   Compressed: ${Math.round(compressedSize / 1024)}KB`);
     console.log(`   Thumbnail: ${Math.round(thumbnail.length / 1024)}KB`);
     console.log(`   Savings: ${savings}%`);
+    if (photoStyle === 'film') {
+      console.log(`   ✅ B&W grayscale applied`);
+    }
 
     return {
       image: compressedImage,

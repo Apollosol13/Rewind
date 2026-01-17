@@ -52,9 +52,9 @@ export default function CameraScreen() {
     }
   }, []);
 
-  // TEMPORARILY DISABLED FOR TESTING - Check daily post status on mount
+  // Check daily post status on mount
   useEffect(() => {
-    // checkDailyPostStatus();
+    checkDailyPostStatus();
     updateTimeRemaining();
     
     // Update countdown every minute
@@ -99,15 +99,15 @@ export default function CameraScreen() {
   }
 
   const takePicture = async () => {
-    // TEMPORARILY DISABLED FOR TESTING - Check if user has already posted today
-    // if (alreadyPosted) {
-    //   Alert.alert(
-    //     '📸 Already Posted Today!',
-    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-    //     [{ text: 'OK', style: 'default' }]
-    //   );
-    //   return;
-    // }
+    // Check if user has already posted today
+    if (alreadyPosted) {
+      Alert.alert(
+        '📸 Already Posted Today!',
+        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
 
     if (cameraRef.current) {
       try {
@@ -309,14 +309,14 @@ export default function CameraScreen() {
           )}
         </View>
 
-        {/* TEMPORARILY DISABLED FOR TESTING - Daily Post Status */}
-        {/* {!checkingStatus && alreadyPosted && (
+        {/* Daily Post Status Banner */}
+        {!checkingStatus && alreadyPosted && (
           <View style={styles.statusBanner}>
             <Text style={styles.statusTextSmall}>
               ✓ Posted • Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
             </Text>
           </View>
-        )} */}
+        )}
 
         {/* Bottom Controls Section */}
         <View style={styles.controlsSection}>

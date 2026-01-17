@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
 
   // B&W: clean black & white
   filmDarken: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Exposure -50 (moderate darkening)
+    backgroundColor: 'rgba(0, 0, 0, 0.30)', // Exposure -50 (darkening)
   },
   filmDesaturate: {
-    backgroundColor: 'rgba(128, 128, 128, 0.50)', // Saturation -100 (full desaturation)
+    backgroundColor: 'rgba(128, 128, 128, 0.75)', // Saturation -100 (heavy gray wash for B&W effect)
   },
   filmCoolTone: {
-    backgroundColor: 'rgba(200, 220, 240, 0.12)', // Warmth -50 (cool blue tone)
+    backgroundColor: 'rgba(200, 220, 255, 0.20)', // Warmth -50 (cool tone)
   },
 
   // Camcorder: VHS home video aesthetic (Old VHS camera preset)

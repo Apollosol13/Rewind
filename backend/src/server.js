@@ -17,13 +17,16 @@ import monitoringRoutes from './routes/monitoring.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure for Railway
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for Railway compatibility
+  crossOriginEmbedderPolicy: false,
+}));
 
-// CORS configuration - allow your app to connect
+// CORS configuration - allow your app and Railway to connect
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['exp://*', 'https://*.expo.dev'] // Expo app origins
+    ? ['exp://*', 'https://*.expo.dev', 'https://*.railway.app'] // Expo app + Railway origins
     : '*', // Allow all in development
   credentials: true,
 }));

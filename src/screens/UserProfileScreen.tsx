@@ -557,6 +557,24 @@ export default function UserProfileScreen() {
                           />
                           {/* Apply filter overlays based on photo_style */}
                           <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
+                          
+                          {/* Camcorder UI overlay (REC, corners) */}
+                          {photo.photo_style === 'camcorder' && (
+                            <View style={styles.camcorderThumbnailOverlay}>
+                              {/* Top indicators */}
+                              <View style={styles.camcorderTop}>
+                                <View style={styles.recIndicatorSmall}>
+                                  <Text style={styles.recTextSmall}>REC</Text>
+                                  <View style={styles.recDotSmall} />
+                                </View>
+                              </View>
+                              {/* Frame corners */}
+                              <View style={styles.cornerSmallTL} />
+                              <View style={styles.cornerSmallTR} />
+                              <View style={styles.cornerSmallBL} />
+                              <View style={styles.cornerSmallBR} />
+                            </View>
+                          )}
                         </View>
                         <View style={styles.polaroidCaption}>
                           <HandwrittenText size={14}>
@@ -1143,6 +1161,84 @@ const styles = StyleSheet.create({
   vintageOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255, 220, 150, 0.15)',
+  },
+  camcorderThumbnailOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  camcorderTop: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 5,
+  },
+  recIndicatorSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 3,
+    gap: 3,
+  },
+  recTextSmall: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+    fontFamily: 'Courier',
+  },
+  recDotSmall: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FF0000',
+  },
+  cornerSmallTL: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallTR: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallBL: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: '#FF0000',
+  },
+  cornerSmallBR: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FF0000',
   },
   vignette: {
     ...StyleSheet.absoluteFillObject,

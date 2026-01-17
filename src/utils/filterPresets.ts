@@ -145,7 +145,7 @@ export const FILTER_PRESETS: Record<string, FilterPreset> = {
 
   /**
    * FILM (1990s-2000s)
-   * Modern film photography: natural colors, fine grain, rich depth
+   * High-contrast black & white film: dramatic shadows, blown highlights
    */
   film: {
     id: 'film',
@@ -153,20 +153,26 @@ export const FILTER_PRESETS: Record<string, FilterPreset> = {
     era: '1990s-2000s',
     characteristics: {
       colorMatrix: [
-        1.05, 0.0, 0.0, 0, 5,   // Slight color enhancement
-        0.0, 1.05, 0.0, 0, 5,
-        0.0, 0.0, 1.05, 0, 5,
+        0.8, 0.0, 0.0, 0, -100,   // Exposure -100 (very dark)
+        0.0, 0.8, 0.0, 0, -100,
+        0.0, 0.0, 0.8, 0, -100,
         0, 0, 0, 1, 0
       ],
-      brightness: 1.0,
-      contrast: 1.1,
-      saturation: 1.1,
-      temperature: 5,
-      grain: 0.1,
+      brightness: 1.0,        // Brightness 0 (neutral)
+      contrast: 1.31,         // Contrast +31
+      saturation: 0.39,       // Saturation -61 (very desaturated)
+      temperature: 0,         // Neutral temperature
+      grain: 0.21,            // Noise reduction -21 (more grain)
       vignette: 0.1,
       fade: 0.05,
+      // Advanced high-contrast B&W settings
+      highlights: 0.0,        // Highlights -100 (blown out)
+      blackPoint: 0.63,       // Black point +63 (crushed blacks)
+      vibrance: 0.76,         // Vibrance -24
+      brilliance: 0.99,       // Brilliance -1
+      definition: 0.73,       // Definition +73 (enhanced local contrast)
     },
-    description: '1990s-2000s film photography with natural colors, subtle grain, and rich color depth like Fuji Superia or Kodak Portra',
+    description: 'Dramatic high-contrast black & white film with blown highlights, crushed blacks, and enhanced definition - classic fine art photography look',
   },
 
   /**

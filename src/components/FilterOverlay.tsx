@@ -51,15 +51,13 @@ export default function FilterOverlay({ filterId }: FilterOverlayProps) {
       );
 
     case 'film':
-      // B&W filter preview - strong desaturation effect
+      // B&W filter - light preview, true conversion happens on backend
       return (
         <View style={styles.overlay} pointerEvents="none">
-          {/* Heavy gray wash for B&W preview */}
+          {/* Light desaturation hint */}
           <View style={[StyleSheet.absoluteFill, styles.filmBWPreview]} />
-          {/* Exposure adjustment */}
+          {/* Slight darkening for exposure */}
           <View style={[StyleSheet.absoluteFill, styles.filmDarken]} />
-          {/* Cool tone */}
-          <View style={[StyleSheet.absoluteFill, styles.filmCoolTone]} />
         </View>
       );
 
@@ -119,16 +117,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 200, 120, 0.18)', // Warm amber for +42 warmth
   },
 
-  // B&W: clean black & white preview
+  // B&W: light preview (backend does true grayscale conversion)
   filmBWPreview: {
-    backgroundColor: 'rgba(128, 128, 128, 0.85)', // Heavy desaturation for B&W preview
-    mixBlendMode: 'saturation' as any, // Reduce saturation if supported
+    backgroundColor: 'rgba(128, 128, 128, 0.40)', // Light desaturation hint
   },
   filmDarken: {
-    backgroundColor: 'rgba(0, 0, 0, 0.20)', // Exposure -50
-  },
-  filmCoolTone: {
-    backgroundColor: 'rgba(200, 220, 255, 0.10)', // Cool tone
+    backgroundColor: 'rgba(0, 0, 0, 0.15)', // Slight exposure reduction
   },
 
   // Camcorder: VHS home video aesthetic (Old VHS camera preset)

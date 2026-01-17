@@ -280,10 +280,22 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>✕</Text>
           </TouchableOpacity>
 
-          {/* REWND Branding - Centered */}
-          <View style={styles.brandingTopCentered}>
+          {/* REWND Branding */}
+          <View style={styles.brandingTop}>
             <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
           </View>
+
+          {/* Flash Toggle */}
+          <TouchableOpacity 
+            style={styles.flashToggle} 
+            onPress={toggleFlash}
+          >
+            <IconSymbol 
+              name="bolt.fill" 
+              size={24} 
+              color={flash !== 'off' ? '#FFD93D' : 'rgba(255, 255, 255, 0.5)'}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Rainbow Stripe */}
@@ -399,6 +411,9 @@ const styles = StyleSheet.create({
   brandText: {
     color: '#333',
     paddingRight: 8,
+  },
+  flashToggle: {
+    padding: 8,
   },
   permissionContainer: {
     flex: 1,

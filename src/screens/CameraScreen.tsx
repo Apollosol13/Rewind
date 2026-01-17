@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { applyBlackAndWhiteFilter } from '../utils/imageFilters';
 import CameraButton from '../components/CameraButton';
 import PolaroidFrame from '../components/PolaroidFrame';
 import HandwrittenText from '../components/HandwrittenText';
@@ -121,7 +123,13 @@ export default function CameraScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
-          setCapturedImage(photo.uri);
+          // Apply B&W conversion for film filter
+          if (photoStyle === 'film') {
+            const bwUri = await applyBlackAndWhiteFilter(photo.uri);
+            setCapturedImage(bwUri);
+          } else {
+            setCapturedImage(photo.uri);
+          }
         }
       } catch (error) {
         console.error('Error taking picture:', error);

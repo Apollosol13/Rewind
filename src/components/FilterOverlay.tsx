@@ -51,14 +51,11 @@ export default function FilterOverlay({ filterId }: FilterOverlayProps) {
       );
 
     case 'film':
+      // B&W filter uses actual grayscale conversion, minimal overlay needed
       return (
         <View style={styles.overlay} pointerEvents="none">
-          {/* Exposure -50 (moderate darkening) */}
+          {/* Slight darkening for exposure -50 */}
           <View style={[StyleSheet.absoluteFill, styles.filmDarken]} />
-          {/* Saturation -100 (pure black & white) */}
-          <View style={[StyleSheet.absoluteFill, styles.filmDesaturate]} />
-          {/* Warmth -50 (cool blue tone) */}
-          <View style={[StyleSheet.absoluteFill, styles.filmCoolTone]} />
         </View>
       );
 
@@ -118,15 +115,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 200, 120, 0.18)', // Warm amber for +42 warmth
   },
 
-  // B&W: clean black & white
+  // B&W: clean black & white (grayscale conversion done in post-processing)
   filmDarken: {
-    backgroundColor: 'rgba(0, 0, 0, 0.30)', // Exposure -50 (darkening)
-  },
-  filmDesaturate: {
-    backgroundColor: 'rgba(128, 128, 128, 0.75)', // Saturation -100 (heavy gray wash for B&W effect)
-  },
-  filmCoolTone: {
-    backgroundColor: 'rgba(200, 220, 255, 0.20)', // Warmth -50 (cool tone)
+    backgroundColor: 'rgba(0, 0, 0, 0.25)', // Exposure -50 preview
   },
 
   // Camcorder: VHS home video aesthetic (Old VHS camera preset)

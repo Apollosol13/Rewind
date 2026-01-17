@@ -554,8 +554,8 @@ export default function UserProfileScreen() {
                             source={{ uri: photo.image_url }}
                             style={styles.polaroidImage}
                           />
-                          <View style={styles.vintageOverlay} />
-                          <View style={styles.vignette} />
+                          {/* Apply filter overlays based on photo_style */}
+                          <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
                         </View>
                         <View style={styles.polaroidCaption}>
                           <HandwrittenText size={14}>

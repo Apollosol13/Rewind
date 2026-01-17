@@ -17,18 +17,16 @@ import monitoringRoutes from './routes/monitoring.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware - configure for Railway
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for Railway compatibility
-  crossOriginEmbedderPolicy: false,
-}));
+// Disable all security middleware temporarily for debugging
+// app.use(helmet({
+//   contentSecurityPolicy: false,
+//   crossOriginEmbedderPolicy: false,
+// }));
 
-// CORS configuration - allow your app and Railway to connect
+// CORS configuration - allow everything in production for now
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['exp://*', 'https://*.expo.dev', 'https://*.railway.app'] // Expo app + Railway origins
-    : '*', // Allow all in development
-  credentials: true,
+  origin: '*', // Allow all origins temporarily to debug Railway issue
+  credentials: false,
 }));
 
 // Body parsing middleware
@@ -38,13 +36,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression middleware
 app.use(compression());
 
-// Global rate limiting
+// Global rate limiting (skip for health checks)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // Increased limit for Railway's health checks
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/', // Skip rate limit for health checks
 });
 app.use(limiter);
 

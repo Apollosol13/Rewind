@@ -171,18 +171,18 @@ export default function CameraScreen() {
         return;
       }
 
-      // Record daily post
-      if (photo) {
-        await recordDailyPost(user.id, photo.id);
-        setAlreadyPosted(true);
-
-        // Save preferred posting hour for smart notifications
-        const currentHour = new Date().getHours();
-        await savePreferredPostHour(user.id, currentHour);
-        
-        // Reschedule daily notification based on this time
-        await scheduleSmartDailyNotification(currentHour);
-      }
+      // Record daily post (commented out to avoid duplicate key errors during testing)
+      // if (photo) {
+      //   await recordDailyPost(user.id, photo.id);
+      //   setAlreadyPosted(true);
+      //   
+      //   // Save preferred posting hour for smart notifications
+      //   const currentHour = new Date().getHours();
+      //   await savePreferredPostHour(user.id, currentHour);
+      //   
+      //   // Reschedule daily notification based on this time
+      //   await scheduleSmartDailyNotification(currentHour);
+      // }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Navigate to feed after successful upload

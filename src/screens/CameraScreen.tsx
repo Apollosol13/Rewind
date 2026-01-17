@@ -23,6 +23,7 @@ import CamcorderOverlay from '../components/CamcorderOverlay';
 import FilterOverlay from '../components/FilterOverlay';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { uploadPhoto } from '../services/photos';
+import { uploadPhotoToBackend } from '../services/backendApi';
 import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
@@ -139,9 +140,18 @@ export default function CameraScreen() {
         return;
       }
 
-      const { photo, error } = await uploadPhoto(capturedImage, caption, user.id, photoStyle);
+      console.log('📸 Uploading photo via backend...');
       
-      if (error) {
+      // Upload to backend (includes compression and Supabase storage)
+      const photo = await uploadPhotoToBackend(
+        capturedImage,
+        caption,
+        photoStyle
+      );
+      
+      console.log(`✅ Photo uploaded! Compression: ${photo.processing?.savings || 'N/A'}`);
+      
+      if (!photo) {
         Alert.alert('Error', 'Failed to upload photo. Please try again.');
         return;
       }

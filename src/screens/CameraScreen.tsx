@@ -290,11 +290,17 @@ export default function CameraScreen() {
             style={styles.flashToggle} 
             onPress={toggleFlash}
           >
-            <IconSymbol 
-              name="bolt.fill" 
-              size={24} 
-              color={flash !== 'off' ? '#FFD93D' : 'rgba(255, 255, 255, 0.5)'}
-            />
+            <View style={[
+              styles.flashToggleTrack,
+              flash !== 'off' && styles.flashToggleTrackActive
+            ]}>
+              <View style={[
+                styles.flashToggleThumb,
+                flash !== 'off' && styles.flashToggleThumbActive
+              ]}>
+                <Text style={styles.flashToggleIcon}>⚡</Text>
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -414,6 +420,36 @@ const styles = StyleSheet.create({
   },
   flashToggle: {
     padding: 8,
+  },
+  flashToggleTrack: {
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  flashToggleTrackActive: {
+    backgroundColor: '#FFD93D',
+  },
+  flashToggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  flashToggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  flashToggleIcon: {
+    fontSize: 14,
   },
   permissionContainer: {
     flex: 1,

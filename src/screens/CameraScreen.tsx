@@ -326,6 +326,9 @@ export default function CameraScreen() {
               )}
             </TouchableOpacity>
           </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </TouchableWithoutFeedback>
     );

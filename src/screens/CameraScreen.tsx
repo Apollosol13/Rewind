@@ -262,7 +262,6 @@ export default function CameraScreen() {
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF5757" />
               <Text style={styles.loadingText}>Converting to B&W...</Text>
-              <Text style={styles.loadingSubtext}>Getting true grayscale from backend</Text>
             </View>
           ) : (
             <>

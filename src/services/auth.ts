@@ -245,6 +245,30 @@ export async function resendVerificationEmail(email: string) {
 }
 
 /**
+ * Verify email with token from deep link
+ */
+export async function verifyEmail(tokenHash: string, type: string) {
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as any,
+    });
+
+    if (error) throw error;
+
+    // Register push token after successful verification
+    if (data.user) {
+      await registerPushToken(data.user.id);
+    }
+
+    return { user: data.user, session: data.session, error: null };
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    return { user: null, session: null, error };
+  }
+}
+
+/**
  * Upload profile picture to Supabase Storage
  */
 export async function uploadProfilePicture(userId: string, imageUri: string) {

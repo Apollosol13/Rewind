@@ -24,6 +24,7 @@ import FilterOverlay from '../components/FilterOverlay';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { uploadPhoto } from '../services/photos';
 import { uploadPhotoToBackend } from '../services/backendApi';
+import { supabase } from '../config/supabase';
 import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
@@ -36,6 +37,8 @@ export default function CameraScreen() {
   const [flash, setFlash] = useState<FlashMode>('off');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null); // Store uploaded photo ID for B&W
+  const [isProcessingBW, setIsProcessingBW] = useState(false); // Loading state for B&W conversion
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [photoStyle, setPhotoStyle] = useState<PhotoStyle>('polaroid');
@@ -121,10 +124,41 @@ export default function CameraScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
-          // Note: Preview shows overlay, but backend will convert to TRUE B&W
-          setCapturedImage(photo.uri);
+          // For B&W filter, upload immediately to get true grayscale version
           if (photoStyle === 'film') {
-            console.log('📸 B&W filter selected - backend will apply grayscale on upload');
+            console.log('🎨 B&W filter detected - uploading for grayscale conversion...');
+            setIsProcessingBW(true);
+            
+            try {
+              const { user } = await getCurrentUser();
+              if (!user) {
+                Alert.alert('Error', 'Please sign in to upload photos');
+                setIsProcessingBW(false);
+                return;
+              }
+
+              // Upload to backend (it will convert to grayscale)
+              const uploadedPhoto = await uploadPhotoToBackend(
+                photo.uri,
+                '', // No caption yet
+                photoStyle
+              );
+
+              console.log('✅ B&W conversion complete!');
+              console.log('   Image URL:', uploadedPhoto.imageUrl);
+              
+              // Set the B&W image URL as captured image
+              setCapturedImage(uploadedPhoto.imageUrl);
+              setUploadedPhotoId(uploadedPhoto.id);
+              setIsProcessingBW(false);
+            } catch (error) {
+              console.error('❌ B&W upload failed:', error);
+              Alert.alert('Error', 'Failed to process B&W photo. Please try again.');
+              setIsProcessingBW(false);
+            }
+          } else {
+            // For other filters, show preview normally
+            setCapturedImage(photo.uri);
           }
         }
       } catch (error) {
@@ -137,6 +171,7 @@ export default function CameraScreen() {
   const retakePicture = () => {
     setCapturedImage(null);
     setCaption('');
+    setUploadedPhotoId(null); // Reset uploaded photo ID
   };
 
   const handleUpload = async () => {
@@ -151,34 +186,50 @@ export default function CameraScreen() {
         return;
       }
 
-      console.log('📸 Uploading photo via backend...');
-      
-      // Upload to backend (includes compression and Supabase storage)
-      const photo = await uploadPhotoToBackend(
-        capturedImage,
-        caption,
-        photoStyle
-      );
-      
-      console.log(`✅ Photo uploaded! Compression: ${photo.processing?.savings || 'N/A'}`);
-      
-      if (!photo) {
-        Alert.alert('Error', 'Failed to upload photo. Please try again.');
-        return;
-      }
+      // If B&W filter and already uploaded, just update caption
+      if (photoStyle === 'film' && uploadedPhotoId) {
+        console.log('📝 Updating caption for already-uploaded B&W photo...');
+        
+        // Update the photo caption in database
+        const { error } = await supabase
+          .from('photos')
+          .update({ caption: caption || null })
+          .eq('id', uploadedPhotoId);
 
-      // Record daily post (commented out to avoid duplicate key errors during testing)
-      // if (photo) {
-      //   await recordDailyPost(user.id, photo.id);
-      //   setAlreadyPosted(true);
-      //   
-      //   // Save preferred posting hour for smart notifications
-      //   const currentHour = new Date().getHours();
-      //   await savePreferredPostHour(user.id, currentHour);
-      //   
-      //   // Reschedule daily notification based on this time
-      //   await scheduleSmartDailyNotification(currentHour);
-      // }
+        if (error) {
+          console.error('❌ Error updating caption:', error);
+          Alert.alert('Error', 'Failed to save caption. Please try again.');
+          return;
+        }
+
+        console.log('✅ Caption updated successfully!');
+      } else {
+        // For other filters, upload normally
+        console.log('📸 Uploading photo via backend...');
+        
+        const photo = await uploadPhotoToBackend(
+          capturedImage,
+          caption,
+          photoStyle
+        );
+        
+        console.log(`✅ Photo uploaded! Compression: ${photo.processing?.savings || 'N/A'}`);
+        
+        if (!photo) {
+          Alert.alert('Error', 'Failed to upload photo. Please try again.');
+          return;
+        }
+
+        // Record daily post (commented out to avoid duplicate key errors during testing)
+        // if (photo) {
+        //   await recordDailyPost(user.id, photo.id);
+        //   setAlreadyPosted(true);
+        //   
+        //   const currentHour = new Date().getHours();
+        //   await savePreferredPostHour(user.id, currentHour);
+        //   await scheduleSmartDailyNotification(currentHour);
+        // }
+      }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Navigate to feed after successful upload
@@ -202,16 +253,25 @@ export default function CameraScreen() {
   };
 
   // Preview modal after capturing
-  if (capturedImage) {
+  if (capturedImage || isProcessingBW) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.previewContainer}>
-          <TouchableOpacity 
-            style={styles.previewBackButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backIcon}>✕</Text>
-          </TouchableOpacity>
+          {isProcessingBW ? (
+            // Loading state for B&W conversion
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF5757" />
+              <Text style={styles.loadingText}>Converting to B&W...</Text>
+              <Text style={styles.loadingSubtext}>Getting true grayscale from backend</Text>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.previewBackButton}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.backIcon}>✕</Text>
+              </TouchableOpacity>
           
           <View style={styles.previewHeader}>
             <HandwrittenText size={28} bold style={{ paddingHorizontal: 10 }}>Your REWND</HandwrittenText>
@@ -457,6 +517,23 @@ const styles = StyleSheet.create({
   },
   flashToggleIcon: {
     fontSize: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
   },
   permissionContainer: {
     flex: 1,

@@ -15,8 +15,6 @@ import {
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import { applyTrueGrayscaleFilter } from '../utils/trueGrayscale';
 import CameraButton from '../components/CameraButton';
 import PolaroidFrame from '../components/PolaroidFrame';
 import HandwrittenText from '../components/HandwrittenText';
@@ -123,14 +121,10 @@ export default function CameraScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
-          // Apply TRUE grayscale conversion for B&W filter
+          // Note: Preview shows overlay, but backend will convert to TRUE B&W
+          setCapturedImage(photo.uri);
           if (photoStyle === 'film') {
-            console.log('🎨 Applying TRUE grayscale to captured image...');
-            const bwUri = await applyTrueGrayscaleFilter(photo.uri);
-            setCapturedImage(bwUri);
-            console.log('✅ B&W conversion complete - preview matches output!');
-          } else {
-            setCapturedImage(photo.uri);
+            console.log('📸 B&W filter selected - backend will apply grayscale on upload');
           }
         }
       } catch (error) {

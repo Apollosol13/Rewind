@@ -32,7 +32,10 @@ import {
 } from '../services/photos';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday as checkHasPostedToday } from '../services/dailyPost';
-import { Photo } from '../config/supabase';
+import { searchUsers, getSuggestedUsers } from '../services/search';
+import { findContactsOnApp } from '../services/contacts';
+import { isFollowing, followUser, unfollowUser } from '../services/follows';
+import { Photo, User } from '../config/supabase';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function FeedScreen() {
@@ -46,6 +49,14 @@ export default function FeedScreen() {
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasPostedToday, setHasPostedToday] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+  const [contactUsers, setContactUsers] = useState<(User & { contactName?: string })[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [userFollowStatus, setUserFollowStatus] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -227,9 +238,132 @@ export default function FeedScreen() {
     );
   };
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    const { users } = await searchUsers(query, currentUserId || undefined);
+    setSearchResults(users);
+    
+    // Check follow status for each user
+    if (currentUserId && users.length > 0) {
+      const statuses: Record<string, boolean> = {};
+      for (const user of users) {
+        const { following } = await isFollowing(currentUserId, user.id);
+        statuses[user.id] = following;
+      }
+      setUserFollowStatus(statuses);
+    }
+    
+    setSearchLoading(false);
+  };
+
+  const loadSuggestedUsers = async () => {
+    if (!currentUserId) return;
+    
+    const { users } = await getSuggestedUsers(currentUserId, 5);
+    setSuggestedUsers(users);
+    
+    // Check follow status
+    if (users.length > 0) {
+      const statuses: Record<string, boolean> = {};
+      for (const user of users) {
+        const { following } = await isFollowing(currentUserId, user.id);
+        statuses[user.id] = following;
+      }
+      setUserFollowStatus(prev => ({ ...prev, ...statuses }));
+    }
+  };
+
+  const handleFindContacts = async () => {
+    if (!currentUserId) return;
+    
+    setContactsLoading(true);
+    const { users, error } = await findContactsOnApp(currentUserId);
+    
+    if (error) {
+      if (error.code === 'PERMISSION_DENIED') {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your contacts to find friends on REWND.',
+          [{ text: 'OK' }]
+        );
+      } else if (error.code === 'COLUMN_NOT_FOUND' || error.code === 'ACCESS_DENIED') {
+        // Database not set up yet or RLS issue
+        console.warn('Contact sync not configured properly');
+        // Don't show alert - just fail silently for now
+        // Users can still search manually
+      } else {
+        // Handle other errors
+        console.error('Error finding contacts:', error);
+        Alert.alert(
+          'Error',
+          'Unable to sync contacts. Please try again later.',
+          [{ text: 'OK' }]
+        );
+      }
+    } else if (users) {
+      setContactUsers(users);
+      
+      // Check follow status
+      if (users.length > 0) {
+        const statuses: Record<string, boolean> = {};
+        for (const user of users) {
+          const { following } = await isFollowing(currentUserId, user.id);
+          statuses[user.id] = following;
+        }
+        setUserFollowStatus(prev => ({ ...prev, ...statuses }));
+      }
+      
+      if (users.length === 0) {
+        Alert.alert(
+          'No Contacts Found',
+          'None of your contacts are on REWND yet. Invite them to join!',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+    
+    setContactsLoading(false);
+  };
+
+  const handleFollowUser = async (userId: string) => {
+    if (!currentUserId) return;
+    
+    await followUser(currentUserId, userId);
+    setUserFollowStatus(prev => ({ ...prev, [userId]: true }));
+  };
+
+  const handleUnfollowUser = async (userId: string) => {
+    if (!currentUserId) return;
+    
+    await unfollowUser(currentUserId, userId);
+    setUserFollowStatus(prev => ({ ...prev, [userId]: false }));
+  };
+
+  const openSearchModal = async () => {
+    setShowSearchModal(true);
+    if (suggestedUsers.length === 0) {
+      await loadSuggestedUsers();
+    }
+  };
+
   const renderHeader = () => (
-    <View style={styles.header}>
-      <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>REWND</HandwrittenText>
+    <View style={styles.headerContainer}>
+      <View style={styles.header}>
+        <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>REWND</HandwrittenText>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={openSearchModal}
+        >
+          <IconSymbol name="magnifyingglass" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
       <Text style={styles.subtitle}>Today's memories</Text>
     </View>
   );
@@ -258,7 +392,7 @@ export default function FeedScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5757" />
+        <ActivityIndicator size="large" color="#EF4249" />
         <HandwrittenText size={20} style={styles.loadingText}>
           Loading memories...
         </HandwrittenText>
@@ -294,7 +428,7 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF5757"
+            tintColor="#EF4249"
           />
         }
         contentContainerStyle={photos.length === 0 ? styles.emptyList : undefined}
@@ -361,7 +495,7 @@ export default function FeedScreen() {
                   <IconSymbol 
                     name={selectedPhoto && photoLikes[selectedPhoto.id] ? "heart.fill" : "heart"} 
                     size={28} 
-                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#FF5757" : "#333"} 
+                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#EF4249" : "#333"} 
                   />
                   <Text style={styles.actionCount}>{selectedPhoto?.likes_count || 0}</Text>
                 </TouchableOpacity>
@@ -385,7 +519,7 @@ export default function FeedScreen() {
                         </HandwrittenText>
                         {comment.user_id === currentUserId && (
                           <TouchableOpacity onPress={() => handleModalDeleteComment(comment.id)}>
-                            <IconSymbol name="trash" size={16} color="#FF5757" />
+                            <IconSymbol name="trash" size={16} color="#EF4249" />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -404,7 +538,7 @@ export default function FeedScreen() {
                           </HandwrittenText>
                           {reply.user_id === currentUserId && (
                             <TouchableOpacity onPress={() => handleModalDeleteComment(reply.id)}>
-                              <IconSymbol name="trash" size={14} color="#FF5757" />
+                              <IconSymbol name="trash" size={14} color="#EF4249" />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -449,12 +583,223 @@ export default function FeedScreen() {
                   <IconSymbol 
                     name="paperplane.fill" 
                     size={24} 
-                    color={commentText.trim() ? "#FF5757" : "#CCC"} 
+                    color={commentText.trim() ? "#EF4249" : "#CCC"} 
                   />
                 </TouchableOpacity>
               </View>
             </View>
           </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Search Modal */}
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <SafeAreaView style={styles.searchModalContainer}>
+          <View style={styles.searchModalHeader}>
+            <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+              <IconSymbol name="xmark.circle.fill" size={28} color="#666" />
+            </TouchableOpacity>
+            <HandwrittenText size={24} bold>Find People</HandwrittenText>
+            <View style={{ width: 28 }} />
+          </View>
+
+          <View style={styles.searchInputContainer}>
+            <IconSymbol name="magnifyingglass" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by username..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <IconSymbol name="xmark.circle.fill" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.findContactsButton}
+            onPress={handleFindContacts}
+            disabled={contactsLoading}
+          >
+            <IconSymbol name="person.2.fill" size={20} color="#EF4249" />
+            <Text style={styles.findContactsText}>
+              {contactsLoading ? 'Searching Contacts...' : 'Find Contacts'}
+            </Text>
+            <IconSymbol name="chevron.right" size={20} color="#EF4249" />
+          </TouchableOpacity>
+
+          <ScrollView style={styles.searchScrollView}>
+            {searchLoading ? (
+              <View style={styles.searchLoadingContainer}>
+                <ActivityIndicator size="large" color="#EF4249" />
+              </View>
+            ) : searchQuery.length > 0 ? (
+              searchResults.length > 0 ? (
+                <View style={styles.searchResultsContainer}>
+                  <Text style={styles.searchSectionTitle}>Search Results</Text>
+                  {searchResults.map((user) => (
+                    <TouchableOpacity
+                      key={user.id}
+                      style={styles.userItem}
+                      onPress={() => {
+                        setShowSearchModal(false);
+                        router.push(`/user/${user.id}`);
+                      }}
+                    >
+                      {user.avatar_url ? (
+                        <Image source={{ uri: user.avatar_url }} style={styles.userAvatar} />
+                      ) : (
+                        <View style={styles.userAvatarPlaceholder}>
+                          <IconSymbol name="person.fill" size={24} color="#999" />
+                        </View>
+                      )}
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userDisplayName}>{user.display_name}</Text>
+                        <Text style={styles.userUsername}>@{user.username}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          if (userFollowStatus[user.id]) {
+                            handleUnfollowUser(user.id);
+                          } else {
+                            handleFollowUser(user.id);
+                          }
+                        }}
+                        style={[
+                          styles.followButton,
+                          userFollowStatus[user.id] && styles.followingButton
+                        ]}
+                      >
+                        <Text style={[
+                          styles.followButtonText,
+                          userFollowStatus[user.id] && styles.followingButtonText
+                        ]}>
+                          {userFollowStatus[user.id] ? 'Following' : 'Follow'}
+                        </Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.noResultsContainer}>
+                  <IconSymbol name="magnifyingglass" size={60} color="#CCC" />
+                  <Text style={styles.noResultsText}>No users found</Text>
+                </View>
+              )
+            ) : contactUsers.length > 0 ? (
+              <View style={styles.searchResultsContainer}>
+                <Text style={styles.searchSectionTitle}>Contacts on REWND</Text>
+                {contactUsers.map((user) => (
+                  <TouchableOpacity
+                    key={user.id}
+                    style={styles.userItem}
+                    onPress={() => {
+                      setShowSearchModal(false);
+                      router.push(`/user/${user.id}`);
+                    }}
+                  >
+                    {user.avatar_url ? (
+                      <Image source={{ uri: user.avatar_url }} style={styles.userAvatar} />
+                    ) : (
+                      <View style={styles.userAvatarPlaceholder}>
+                        <IconSymbol name="person.fill" size={24} color="#999" />
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userDisplayName}>
+                        {user.display_name || user.contactName}
+                      </Text>
+                      <Text style={styles.userUsername}>@{user.username}</Text>
+                      {user.contactName && (
+                        <Text style={styles.contactNameText}>📱 {user.contactName}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        if (userFollowStatus[user.id]) {
+                          handleUnfollowUser(user.id);
+                        } else {
+                          handleFollowUser(user.id);
+                        }
+                      }}
+                      style={[
+                        styles.followButton,
+                        userFollowStatus[user.id] && styles.followingButton
+                      ]}
+                    >
+                      <Text style={[
+                        styles.followButtonText,
+                        userFollowStatus[user.id] && styles.followingButtonText
+                      ]}>
+                        {userFollowStatus[user.id] ? 'Following' : 'Follow'}
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : suggestedUsers.length > 0 ? (
+              <View style={styles.searchResultsContainer}>
+                <Text style={styles.searchSectionTitle}>Suggested for You</Text>
+                {suggestedUsers.map((user) => (
+                  <TouchableOpacity
+                    key={user.id}
+                    style={styles.userItem}
+                    onPress={() => {
+                      setShowSearchModal(false);
+                      router.push(`/user/${user.id}`);
+                    }}
+                  >
+                    {user.avatar_url ? (
+                      <Image source={{ uri: user.avatar_url }} style={styles.userAvatar} />
+                    ) : (
+                      <View style={styles.userAvatarPlaceholder}>
+                        <IconSymbol name="person.fill" size={24} color="#999" />
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userDisplayName}>{user.display_name}</Text>
+                      <Text style={styles.userUsername}>@{user.username}</Text>
+                      {user.bio && (
+                        <Text style={styles.userBio} numberOfLines={1}>{user.bio}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        if (userFollowStatus[user.id]) {
+                          handleUnfollowUser(user.id);
+                        } else {
+                          handleFollowUser(user.id);
+                        }
+                      }}
+                      style={[
+                        styles.followButton,
+                        userFollowStatus[user.id] && styles.followingButton
+                      ]}
+                    >
+                      <Text style={[
+                        styles.followButtonText,
+                        userFollowStatus[user.id] && styles.followingButtonText
+                      ]}>
+                        {userFollowStatus[user.id] ? 'Following' : 'Follow'}
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -476,13 +821,27 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: '#666',
   },
-  header: {
+  headerContainer: {
     alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 10,
-    paddingHorizontal: 30,
-    overflow: 'visible',
     width: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+    width: '100%',
+    position: 'relative',
+  },
+  searchButton: {
+    position: 'absolute',
+    right: 20,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   subtitle: {
     fontSize: 16,
@@ -511,7 +870,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   captureButton: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
@@ -533,7 +892,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -626,7 +985,7 @@ const styles = StyleSheet.create({
   },
   replyButton: {
     fontSize: 12,
-    color: '#FF5757',
+    color: '#EF4249',
     fontWeight: '600',
   },
   replyItem: {
@@ -682,5 +1041,148 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     padding: 8,
+  },
+  // Search Modal Styles
+  searchModalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
+  searchModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    margin: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  findContactsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#EF4249',
+    gap: 10,
+  },
+  findContactsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4249',
+  },
+  searchScrollView: {
+    flex: 1,
+  },
+  searchLoadingContainer: {
+    paddingTop: 60,
+    alignItems: 'center',
+  },
+  searchResultsContainer: {
+    paddingHorizontal: 16,
+  },
+  searchSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  userAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  userAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  userDisplayName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  userUsername: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  userBio: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 4,
+  },
+  contactNameText: {
+    fontSize: 12,
+    color: '#EF4249',
+    marginTop: 2,
+  },
+  followButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#EF4249',
+  },
+  followingButton: {
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  followButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  followingButtonText: {
+    color: '#666',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 16,
   },
 });

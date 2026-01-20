@@ -55,7 +55,7 @@ export async function registerPushToken(userId: string) {
     // For Expo Go, use experienceId from the slug
     // For standalone builds, projectId would be from app.json
     const token = await Notifications.getExpoPushTokenAsync({
-      projectId: '00000000-0000-0000-0000-000000000000', // Temporary for development
+      projectId: 'a08f49c7-53f3-450d-a487-797c2c32f224',
     });
 
     console.log('📱 Got push token:', token.data);
@@ -72,10 +72,8 @@ export async function registerPushToken(userId: string) {
     return { token: token.data, error: null };
   } catch (error) {
     console.error('Error registering push token:', error);
-    console.log('💡 For push notifications to work, you need to either:');
-    console.log('   1. Run: npx eas init (to get a real project ID)');
-    console.log('   2. Build a standalone app with EAS Build');
-    console.log('   3. For testing in Expo Go, use local notifications');
+    console.log('💡 Push notifications require a standalone build (TestFlight/Production)');
+    console.log('   Local notifications will still work in development builds');
     return { token: null, error };
   }
 }
@@ -101,8 +99,7 @@ export async function sendPushNotificationToUser(
 
     if (!userData?.push_token) {
       console.log('⚠️ User has no push token registered:', userId);
-      console.log('💡 Skipping notification - push notifications require EAS setup');
-      console.log('   Run: npx eas init (then update app.json with projectId)');
+      console.log('💡 Skipping notification - user needs to login on a production build');
       return { error: 'No push token' };
     }
 

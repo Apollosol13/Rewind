@@ -159,7 +159,7 @@ export default function FollowListScreen() {
       {/* List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF5757" />
+          <ActivityIndicator size="large" color="#EF4249" />
         </View>
       ) : currentList.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -209,14 +209,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#FF5757',
+    borderBottomColor: '#EF4249',
   },
   tabText: {
     fontSize: 20,
     color: '#999',
   },
   activeTabText: {
-    color: '#FF5757',
+    color: '#EF4249',
   },
   listContent: {
     padding: 16,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: '#f0f0f0',
     borderWidth: 2,
-    borderColor: '#FF5757',
+    borderColor: '#EF4249',
   },
   avatarPlaceholder: {
     width: 56,

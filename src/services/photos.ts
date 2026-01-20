@@ -125,7 +125,30 @@ export async function getUserPhotos(userId: string) {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return { photos: data, error: null };
+
+    // Get likes and comments count for each photo
+    const photosWithCounts = await Promise.all(
+      (data || []).map(async (photo) => {
+        const [likesResult, commentsResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('photo_id', photo.id),
+          supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('photo_id', photo.id),
+        ]);
+
+        return {
+          ...photo,
+          likes_count: likesResult.count || 0,
+          comments_count: commentsResult.count || 0,
+        };
+      })
+    );
+
+    return { photos: photosWithCounts, error: null };
   } catch (error) {
     console.error('Error getting user photos:', error);
     return { photos: [], error };

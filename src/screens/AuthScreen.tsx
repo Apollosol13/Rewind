@@ -223,7 +223,7 @@ export default function AuthScreen() {
 
             {pendingVerificationEmail ? (
               <View style={styles.verificationNotice}>
-                <IconSymbol name="envelope.fill" size={40} color="#FF5757" />
+                <IconSymbol name="envelope.fill" size={40} color="#EF4249" />
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
                 <Text style={styles.verificationText}>
                   We sent a verification link to{'\n'}
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   submitButton: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   legalLink: {
-    color: '#FF5757',
+    color: '#EF4249',
     textDecorationLine: 'underline',
   },
   ageCheckbox: {
@@ -440,8 +440,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#FF5757',
-    borderColor: '#FF5757',
+    backgroundColor: '#EF4249',
+    borderColor: '#EF4249',
   },
   ageCheckboxText: {
     fontSize: 14,
@@ -487,10 +487,10 @@ const styles = StyleSheet.create({
   },
   verificationEmail: {
     fontWeight: '600',
-    color: '#FF5757',
+    color: '#EF4249',
   },
   resendButton: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 24,

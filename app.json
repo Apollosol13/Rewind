@@ -27,7 +27,7 @@
     "android": {
       "package": "com.rewind.app",
       "adaptiveIcon": {
-        "backgroundColor": "#FF5757",
+        "backgroundColor": "#EF4249",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -48,9 +48,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FF5757",
+          "backgroundColor": "#EF4249",
           "dark": {
-            "backgroundColor": "#FF5757"
+            "backgroundColor": "#EF4249"
           }
         }
       ]

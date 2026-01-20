@@ -27,7 +27,7 @@ The camera interface has been redesigned to look like an **authentic Polaroid On
 
 ### 3. **Rainbow Stripe**
 Classic Polaroid rainbow stripe across the top:
-- 🔴 Red (#FF5757)
+- 🔴 Red (#EF4249)
 - 🟠 Orange (#FFA500)  
 - 🟡 Yellow (#FFD93D)
 - 🟢 Green (#6BCB77)
@@ -62,7 +62,7 @@ Classic Polaroid rainbow stripe across the top:
 - White border
 - Inner circle (darker red)
 - Shadow and elevation
-- Classic Polaroid red color (#FF5757)
+- Classic Polaroid red color (#EF4249)
 
 #### Right: **Flip Camera**
 - Round button
@@ -149,7 +149,7 @@ Despite vintage look, it's modern and intuitive:
 - Borders: `#666` (medium gray)
 
 ### Shutter Button
-- Main: `#FF5757` (bright red)
+- Main: `#EF4249` (bright red)
 - Inner: `#FF3333` (darker red)
 - Border: `#FFF` (white)
 

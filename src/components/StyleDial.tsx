@@ -17,7 +17,7 @@ const STYLE_OPTIONS: StyleOption[] = [
     id: 'polaroid', 
     label: 'Polaroid', 
     icon: 'photo', 
-    color: '#FF5757',
+    color: '#EF4249',
     description: '1970s-80s instant film with warm tones and soft focus'
   },
   { 

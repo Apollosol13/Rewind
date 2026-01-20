@@ -14,6 +14,7 @@ interface PolaroidFrameProps {
   showRainbow?: boolean;
   width?: number;
   filterId?: PhotoStyle;
+  showWatermark?: boolean;
 }
 
 export default function PolaroidFrame({
@@ -23,6 +24,7 @@ export default function PolaroidFrame({
   showRainbow = true,
   width = 320,
   filterId = 'polaroid',
+  showWatermark = false,
 }: PolaroidFrameProps) {
   const imageSize = width - 40; // Account for padding
   const photoDate = typeof date === 'string' ? new Date(date) : date;
@@ -73,6 +75,11 @@ export default function PolaroidFrame({
             {caption}
           </HandwrittenText>
         ) : null}
+        {showWatermark && (
+          <HandwrittenText size={14} style={styles.watermark}>
+            REWND
+          </HandwrittenText>
+        )}
       </View>
     </View>
   );
@@ -80,15 +87,15 @@ export default function PolaroidFrame({
 
 const styles = StyleSheet.create({
   polaroidFrame: {
-    backgroundColor: '#F8F6F0', // Aged white/cream color
+    backgroundColor: '#FFFFFF', // Pure white for better contrast
     padding: 20,
     paddingBottom: 50,
     borderRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   rainbowContainer: {
     alignItems: 'center',
@@ -138,12 +145,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   date: {
-    color: '#8B7355', // Faded brown color like old ink
-    opacity: 0.85,
+    color: '#000000', // Black for better visibility
+    opacity: 1,
     marginBottom: 4,
   },
   caption: {
     marginTop: 6,
     lineHeight: 26,
+  },
+  watermark: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    color: '#000000',
+    opacity: 0.7,
   },
 });

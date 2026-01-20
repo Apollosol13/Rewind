@@ -99,7 +99,7 @@ Choose your path:
 
 ### Color Palette
 - **Background:** `#F5F5F0` (Cream white)
-- **Primary:** `#FF5757` (Coral red)
+- **Primary:** `#EF4249` (Coral red)
 - **Text:** `#333` (Dark gray)
 
 ### Typography

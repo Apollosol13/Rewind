@@ -12,11 +12,21 @@ import {
   TextInput,
   Platform,
   ActionSheetIOS,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserProfile } from '../services/auth';
-import { getUserPhotos } from '../services/photos';
+import { 
+  getUserPhotos,
+  likePhoto,
+  unlikePhoto,
+  addComment,
+  getComments,
+  hasUserLikedPhoto,
+  addCommentReply,
+  deleteComment as deletePhotoComment
+} from '../services/photos';
 import { getFollowerCount, getFollowingCount, isFollowing, followUser, unfollowUser } from '../services/follows';
 import { getNewFollowersCount } from '../services/followerBadge';
 import { areMutualFollowers, sendStickyMessage, canSendMessageTo } from '../services/stickyMessages';
@@ -56,6 +66,11 @@ export default function UserProfileScreen() {
   const [monthlyPhotos, setMonthlyPhotos] = useState<MonthlyPhotos[]>([]);
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [photoLikes, setPhotoLikes] = useState<Record<string, boolean>>({});
+  const [photoComments, setPhotoComments] = useState<Record<string, any[]>>({});
+  const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<any>(null);
 
   useEffect(() => {
     loadUserProfile();
@@ -334,6 +349,103 @@ export default function UserProfileScreen() {
     setShowComposeModal(true);
   };
 
+  const loadPhotoDetails = async (photoId: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      // Check if user liked this photo
+      const { liked } = await hasUserLikedPhoto(photoId, currentUserId);
+      setPhotoLikes(prev => ({ ...prev, [photoId]: liked }));
+      
+      // Load comments
+      const { comments } = await getComments(photoId);
+      setPhotoComments(prev => ({ ...prev, [photoId]: comments || [] }));
+    } catch (error) {
+      console.error('Error loading photo details:', error);
+    }
+  };
+
+  const handlePhotoLike = async (photoId: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      await likePhoto(photoId, currentUserId);
+      setPhotoLikes(prev => ({ ...prev, [photoId]: true }));
+      
+      // Update likes count in photos array
+      setPhotos(prev => prev.map(p => 
+        p.id === photoId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p
+      ));
+      
+      // Update selectedPhoto if it's the current one
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto(prev => prev ? { ...prev, likes_count: (prev.likes_count || 0) + 1 } : null);
+      }
+    } catch (error) {
+      console.error('Error liking photo:', error);
+    }
+  };
+
+  const handlePhotoUnlike = async (photoId: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      await unlikePhoto(photoId, currentUserId);
+      setPhotoLikes(prev => ({ ...prev, [photoId]: false }));
+      
+      // Update likes count in photos array
+      setPhotos(prev => prev.map(p => 
+        p.id === photoId ? { ...p, likes_count: Math.max((p.likes_count || 0) - 1, 0) } : p
+      ));
+      
+      // Update selectedPhoto if it's the current one
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto(prev => prev ? { ...prev, likes_count: Math.max((prev.likes_count || 0) - 1, 0) } : null);
+      }
+    } catch (error) {
+      console.error('Error unliking photo:', error);
+    }
+  };
+
+  const handleModalAddComment = async () => {
+    if (!selectedPhoto || !currentUserId || !commentText.trim()) return;
+    
+    try {
+      if (replyingTo) {
+        // Add reply
+        await addCommentReply(selectedPhoto.id, currentUserId, commentText.trim(), replyingTo.id);
+      } else {
+        // Add comment
+        await addComment(selectedPhoto.id, currentUserId, commentText.trim());
+      }
+      
+      setCommentText('');
+      setReplyingTo(null);
+      
+      // Reload comments
+      await loadPhotoDetails(selectedPhoto.id);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      Alert.alert('Error', 'Failed to add comment');
+    }
+  };
+
+  const handleModalDeleteComment = async (commentId: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      await deletePhotoComment(commentId, currentUserId);
+      
+      // Reload comments
+      if (selectedPhoto) {
+        await loadPhotoDetails(selectedPhoto.id);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'Failed to delete comment');
+    }
+  };
+
   const goToPreviousMonth = () => {
     if (currentMonthIndex < monthlyPhotos.length - 1) {
       setCurrentMonthIndex(currentMonthIndex + 1);
@@ -349,7 +461,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5757" />
+        <ActivityIndicator size="large" color="#EF4249" />
       </SafeAreaView>
     );
   }
@@ -527,7 +639,7 @@ export default function UserProfileScreen() {
                   const rotations = [-4, 3, -3, 5, -2, 4];
 
                   return (
-                    <View
+                    <TouchableOpacity
                       key={photo.id}
                       style={[
                         styles.pinnedPolaroid,
@@ -540,6 +652,10 @@ export default function UserProfileScreen() {
                           width: '40%',
                         },
                       ]}
+                      onPress={() => {
+                        setSelectedPhoto(photo);
+                        loadPhotoDetails(photo.id);
+                      }}
                     >
                       <View style={[
                         styles.tape,
@@ -582,7 +698,7 @@ export default function UserProfileScreen() {
                           </HandwrittenText>
                         </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -733,8 +849,8 @@ export default function UserProfileScreen() {
                       handleBlockUser();
                     }}
                   >
-                    <IconSymbol name="person.fill.xmark" size={24} color="#FF5757" />
-                    <Text style={[styles.menuItemText, { color: '#FF5757' }]}>Block User</Text>
+                    <IconSymbol name="person.fill.xmark" size={24} color="#EF4249" />
+                    <Text style={[styles.menuItemText, { color: '#EF4249' }]}>Block User</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
@@ -753,6 +869,162 @@ export default function UserProfileScreen() {
           </TouchableOpacity>
         </Modal>
       )}
+
+      {/* Photo Detail Modal */}
+      <Modal
+        visible={!!selectedPhoto}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setSelectedPhoto(null);
+          setCommentText('');
+          setReplyingTo(null);
+        }}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.photoModalHeader}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setSelectedPhoto(null);
+                  setCommentText('');
+                  setReplyingTo(null);
+                }}
+              >
+                <Text style={styles.modalCloseIcon}>✕</Text>
+              </TouchableOpacity>
+              
+              <View style={{ width: 24 }} />
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.photoModalScroll}>
+              {/* Photo */}
+              {selectedPhoto && (
+                <View style={styles.photoContainer}>
+                  <PolaroidFrame
+                    imageUri={selectedPhoto.image_url}
+                    caption={selectedPhoto.caption}
+                    date={selectedPhoto.created_at}
+                    showRainbow={true}
+                    width={300}
+                    filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
+                  />
+                </View>
+              )}
+
+              {/* Likes and Actions */}
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => selectedPhoto && (photoLikes[selectedPhoto.id] ? handlePhotoUnlike(selectedPhoto.id) : handlePhotoLike(selectedPhoto.id))}
+                >
+                  <IconSymbol 
+                    name={selectedPhoto && photoLikes[selectedPhoto.id] ? "heart.fill" : "heart"} 
+                    size={28} 
+                    color={selectedPhoto && photoLikes[selectedPhoto.id] ? "#EF4249" : "#333"} 
+                  />
+                  <Text style={styles.actionCount}>{selectedPhoto?.likes_count || 0}</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.actionButton}>
+                  <IconSymbol name="bubble.left" size={28} color="#333" />
+                  <Text style={styles.actionCount}>
+                    {selectedPhoto && photoComments[selectedPhoto.id] 
+                      ? photoComments[selectedPhoto.id].length 
+                      : selectedPhoto?.comments_count || 0}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Comments Section */}
+              <View style={styles.commentsSection}>
+                <Text style={styles.commentsTitle}>Comments</Text>
+                
+                {selectedPhoto && photoComments[selectedPhoto.id]?.filter(c => !c.parent_comment_id).map((comment) => (
+                  <View key={comment.id}>
+                    <View style={styles.commentItem}>
+                      <View style={styles.commentHeader}>
+                        <HandwrittenText size={14} bold style={{ paddingHorizontal: 5 }}>
+                          @{comment.users?.username}
+                        </HandwrittenText>
+                        {comment.user_id === currentUserId && (
+                          <TouchableOpacity onPress={() => handleModalDeleteComment(comment.id)}>
+                            <IconSymbol name="trash" size={16} color="#EF4249" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={styles.commentText}>{comment.text}</Text>
+                      <TouchableOpacity onPress={() => setReplyingTo(comment)}>
+                        <Text style={styles.replyButton}>Reply</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {/* Replies */}
+                    {selectedPhoto && photoComments[selectedPhoto.id]?.filter(c => c.parent_comment_id === comment.id).map((reply) => (
+                      <View key={reply.id} style={styles.replyItem}>
+                        <View style={styles.commentHeader}>
+                          <HandwrittenText size={12} bold style={{ paddingHorizontal: 5 }}>
+                            @{reply.users?.username}
+                          </HandwrittenText>
+                          {reply.user_id === currentUserId && (
+                            <TouchableOpacity onPress={() => handleModalDeleteComment(reply.id)}>
+                              <IconSymbol name="trash" size={14} color="#EF4249" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <Text style={styles.replyText}>{reply.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+                
+                {selectedPhoto && (!photoComments[selectedPhoto.id] || photoComments[selectedPhoto.id].length === 0) && (
+                  <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+                )}
+              </View>
+            </ScrollView>
+
+            {/* Comment Input */}
+            <View style={styles.commentInputContainer}>
+              {replyingTo && (
+                <View style={styles.replyingToBar}>
+                  <Text style={styles.replyingToText}>
+                    Replying to @{replyingTo.users?.username}
+                  </Text>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                    <IconSymbol name="xmark.circle.fill" size={20} color="#999" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Add a comment..."
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity 
+                  style={styles.sendButton}
+                  onPress={handleModalAddComment}
+                  disabled={!commentText.trim()}
+                >
+                  <IconSymbol 
+                    name="paperplane.fill" 
+                    size={24} 
+                    color={commentText.trim() ? "#EF4249" : "#CCC"} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -846,7 +1118,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF5757',
+    color: '#EF4249',
   },
   statLabel: {
     fontSize: 12,
@@ -860,7 +1132,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   newBadge: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -885,7 +1157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     paddingVertical: 12,
     borderRadius: 25,
     shadowColor: '#000',
@@ -935,7 +1207,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
@@ -978,7 +1250,7 @@ const styles = StyleSheet.create({
   },
   unblockLink: {
     fontSize: 15,
-    color: '#FF5757',
+    color: '#EF4249',
     fontWeight: '600',
   },
   menuOverlay: {
@@ -1033,7 +1305,7 @@ const styles = StyleSheet.create({
   sendButton: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF5757',
+    color: '#EF4249',
   },
   sendButtonDisabled: {
     color: '#CCC',
@@ -1261,5 +1533,152 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
+  photoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  modalCloseIcon: {
+    fontSize: 24,
+    color: '#333',
+    fontWeight: '600',
+  },
+  photoModalScroll: {
+    flex: 1,
+  },
+  photoContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    gap: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  commentsSection: {
+    padding: 20,
+  },
+  commentsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  commentItem: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  replyButton: {
+    fontSize: 12,
+    color: '#EF4249',
+    fontWeight: '600',
+  },
+  replyItem: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    padding: 10,
+    marginLeft: 30,
+    marginBottom: 8,
+  },
+  replyText: {
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 18,
+  },
+  noComments: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 30,
+  },
+  commentInputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  replyingToBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F0F0F0',
+  },
+  replyingToText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#333',
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  modalContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoWrapper: {
+    alignItems: 'center',
   },
 });

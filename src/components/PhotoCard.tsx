@@ -121,7 +121,7 @@ export default function PhotoCard({
           <IconSymbol 
             name={isLiked ? "heart.fill" : "heart"} 
             size={28} 
-            color={isLiked ? "#FF5757" : "#333"} 
+            color={isLiked ? "#EF4249" : "#333"} 
           />
         </TouchableOpacity>
         
@@ -156,7 +156,7 @@ export default function PhotoCard({
                   onPress={() => handleDeleteComment(comment.id)}
                   style={styles.deleteButton}
                 >
-                  <IconSymbol name="trash" size={14} color="#FF5757" />
+                  <IconSymbol name="trash" size={14} color="#EF4249" />
                 </TouchableOpacity>
               )}
             </View>
@@ -192,7 +192,7 @@ export default function PhotoCard({
             <IconSymbol 
               name="paperplane.fill" 
               size={24} 
-              color={commentText.trim() ? "#FF5757" : "#CCC"} 
+              color={commentText.trim() ? "#EF4249" : "#CCC"} 
             />
           </TouchableOpacity>
         </View>

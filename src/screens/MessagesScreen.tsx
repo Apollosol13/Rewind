@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -110,12 +111,14 @@ export default function MessagesScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <HandwrittenText size={32} bold>Messages</HandwrittenText>
+        <View style={styles.headerTitle}>
+          <HandwrittenText size={32} bold>Messages</HandwrittenText>
+        </View>
         <TouchableOpacity
           style={styles.composeButton}
           onPress={() => setShowComposeModal(true)}
         >
-          <IconSymbol name="square.and.pencil" size={24} color="#FF5757" />
+          <IconSymbol name="square.and.pencil" size={24} color="#EF4249" />
         </TouchableOpacity>
       </View>
 
@@ -147,7 +150,7 @@ export default function MessagesScreen() {
       {/* Messages List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF5757" />
+          <ActivityIndicator size="large" color="#EF4249" />
         </View>
       ) : (
         <ScrollView
@@ -236,7 +239,7 @@ export default function MessagesScreen() {
               <TouchableOpacity
                 onPress={() => selectedMessage && handleDeleteMessage(selectedMessage.id)}
               >
-                <IconSymbol name="trash.fill" size={24} color="#FF5757" />
+                <IconSymbol name="trash.fill" size={24} color="#EF4249" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -361,7 +364,7 @@ function ComposeMessageModal({
               <View style={styles.section}>
                 <HandwrittenText size={18} bold>Send to:</HandwrittenText>
                 {loading ? (
-                  <ActivityIndicator style={{ marginTop: 20 }} color="#FF5757" />
+                  <ActivityIndicator style={{ marginTop: 20 }} color="#EF4249" />
                 ) : mutualFollowers.length === 0 ? (
                   <Text style={styles.noFollowersText}>
                     No mutual followers yet. Follow someone and have them follow you back!
@@ -374,7 +377,16 @@ function ComposeMessageModal({
                         style={styles.followerCard}
                         onPress={() => setSelectedRecipient(follower)}
                       >
-                        <IconSymbol name="person.circle.fill" size={40} color="#DDD" />
+                        {follower.avatar_url ? (
+                          <Image 
+                            source={{ uri: follower.avatar_url }} 
+                            style={styles.followerAvatar}
+                          />
+                        ) : (
+                          <View style={styles.followerAvatarPlaceholder}>
+                            <IconSymbol name="person.fill" size={24} color="#999" />
+                          </View>
+                        )}
                         <Text style={styles.followerUsername}>@{follower.username}</Text>
                         <IconSymbol name="chevron.right" size={20} color="#999" />
                       </TouchableOpacity>
@@ -388,7 +400,16 @@ function ComposeMessageModal({
                 <View style={styles.selectedRecipient}>
                   <Text style={styles.toLabel}>To:</Text>
                   <View style={styles.recipientInfo}>
-                    <IconSymbol name="person.circle.fill" size={30} color="#DDD" />
+                    {selectedRecipient.avatar_url ? (
+                      <Image 
+                        source={{ uri: selectedRecipient.avatar_url }} 
+                        style={styles.selectedAvatar}
+                      />
+                    ) : (
+                      <View style={styles.selectedAvatarPlaceholder}>
+                        <IconSymbol name="person.fill" size={18} color="#999" />
+                      </View>
+                    )}
                     <Text style={styles.recipientUsername}>@{selectedRecipient.username}</Text>
                   </View>
                   <TouchableOpacity onPress={() => setSelectedRecipient(null)}>
@@ -482,6 +503,10 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
   },
+  headerTitle: {
+    flex: 1,
+    paddingRight: 10,
+  },
   composeButton: {
     padding: 8,
   },
@@ -503,7 +528,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activeTab: {
-    borderBottomColor: '#FF5757',
+    borderBottomColor: '#EF4249',
   },
   tabText: {
     fontSize: 16,
@@ -511,11 +536,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#FF5757',
+    color: '#EF4249',
     fontWeight: '700',
   },
   unreadBadge: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -554,7 +579,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     borderRadius: 25,
   },
   emptyButtonText: {
@@ -583,7 +608,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     zIndex: 10,
   },
   messageHeader: {
@@ -649,7 +674,7 @@ const styles = StyleSheet.create({
   sendButton: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF5757',
+    color: '#EF4249',
   },
   sendButtonDisabled: {
     color: '#CCC',
@@ -686,6 +711,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  followerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+  },
+  followerAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   selectedRecipient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -711,9 +750,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  selectedAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F0F0F0',
+  },
+  selectedAvatarPlaceholder: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   changeButton: {
     fontSize: 14,
-    color: '#FF5757',
+    color: '#EF4249',
     fontWeight: '600',
   },
   colorSection: {

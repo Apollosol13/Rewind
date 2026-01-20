@@ -109,15 +109,14 @@ export default function CameraScreen() {
 
   const takePicture = async () => {
     // Check if user has already posted today
-    // TEMPORARILY DISABLED FOR TESTING
-    // if (alreadyPosted) {
-    //   Alert.alert(
-    //     '📸 Already Posted Today!',
-    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-    //     [{ text: 'OK', style: 'default' }]
-    //   );
-    //   return;
-    // }
+    if (alreadyPosted) {
+      Alert.alert(
+        '📸 Already Posted Today!',
+        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
 
     if (cameraRef.current) {
       try {
@@ -260,7 +259,7 @@ export default function CameraScreen() {
           {isProcessingBW ? (
             // Loading state for B&W conversion
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FF5757" />
+              <ActivityIndicator size="large" color="#EF4249" />
               <Text style={styles.loadingText}>Converting to B&W...</Text>
             </View>
           ) : (
@@ -373,7 +372,7 @@ export default function CameraScreen() {
 
         {/* Rainbow Stripe */}
         <View style={styles.rainbowStripe}>
-          <View style={[styles.stripe, { backgroundColor: '#FF5757' }]} />
+          <View style={[styles.stripe, { backgroundColor: '#EF4249' }]} />
           <View style={[styles.stripe, { backgroundColor: '#FFA500' }]} />
           <View style={[styles.stripe, { backgroundColor: '#FFD93D' }]} />
           <View style={[styles.stripe, { backgroundColor: '#6BCB77' }]} />
@@ -400,14 +399,13 @@ export default function CameraScreen() {
         </View>
 
         {/* Daily Post Status Banner */}
-        {/* TEMPORARILY DISABLED FOR TESTING */}
-        {/* {!checkingStatus && alreadyPosted && (
+        {!checkingStatus && alreadyPosted && (
           <View style={styles.statusBanner}>
             <Text style={styles.statusTextSmall}>
               ✓ Posted • Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
             </Text>
           </View>
-        )} */}
+        )}
 
         {/* Bottom Controls Section */}
         <View style={styles.controlsSection}>
@@ -430,13 +428,17 @@ export default function CameraScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Flip Camera Button */}
-          <TouchableOpacity 
-            style={styles.flipCameraButton}
-            onPress={toggleCameraFacing}
-          >
-            <Text style={styles.flipCameraText}>🔄</Text>
-          </TouchableOpacity>
+          {/* Camera Roll & Flip Camera Buttons */}
+          <View style={styles.rightButtonsContainer}>
+            {/* Camera Roll Button */}
+            {/* Flip Camera Button */}
+            <TouchableOpacity 
+              style={styles.flipCameraButton}
+              onPress={toggleCameraFacing}
+            >
+              <Text style={styles.flipCameraText}>🔄</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       </View>
@@ -549,7 +551,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   permissionButton: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
@@ -645,10 +647,10 @@ const styles = StyleSheet.create({
     width: 75,
     height: 75,
     borderRadius: 37.5,
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF5757',
+    shadowColor: '#EF4249',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -666,6 +668,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
+  rightButtonsContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   flipCameraButton: {
     width: 50,
     height: 50,
@@ -673,7 +682,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
   },
   flipCameraText: {
     fontSize: 24,
@@ -747,7 +755,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   shareButton: {
-    backgroundColor: '#FF5757',
+    backgroundColor: '#EF4249',
   },
   actionButtonText: {
     color: 'white',

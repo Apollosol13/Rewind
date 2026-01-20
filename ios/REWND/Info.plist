@@ -55,6 +55,8 @@
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Rewind needs access to your photo library to save your Rewinds.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Rewind can help you find friends who are already on the app by accessing your contacts. Your contacts are never stored or shared.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

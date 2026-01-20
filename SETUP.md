@@ -203,7 +203,7 @@ Rewind is designed to evoke nostalgia with:
 - **Polaroid frames** with rainbow stripe branding
 - **Handwritten fonts** (Caveat) for captions
 - **Date stamps** on every photo
-- **Coral red accents** (#FF5757) for CTAs
+- **Coral red accents** (#EF4249) for CTAs
 - **Minimal UI** to focus on memories
 
 ## 📝 License

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
-import { updatePassword } from '../../src/services/auth';
+import { updatePassword, verifyEmail } from '../../src/services/auth';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function ResetPassword() {
@@ -10,6 +10,48 @@ export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tokenVerified, setTokenVerified] = useState(false);
+  const [verifying, setVerifying] = useState(true);
+
+  useEffect(() => {
+    verifyResetToken();
+  }, []);
+
+  const verifyResetToken = async () => {
+    try {
+      const tokenHash = params.token_hash as string;
+      const type = params.type as string;
+
+      if (tokenHash && type) {
+        // Verify the token to establish session
+        const { error } = await verifyEmail(tokenHash, type);
+        
+        if (error) {
+          Alert.alert(
+            'Invalid Link',
+            'This password reset link is invalid or has expired. Please request a new one.',
+            [{ text: 'OK', onPress: () => router.replace('/auth') }]
+          );
+        } else {
+          setTokenVerified(true);
+        }
+      } else {
+        Alert.alert(
+          'Invalid Link',
+          'This password reset link is invalid. Please request a new one.',
+          [{ text: 'OK', onPress: () => router.replace('/auth') }]
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Something went wrong. Please try again.',
+        [{ text: 'OK', onPress: () => router.replace('/auth') }]
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
@@ -41,6 +83,23 @@ export default function ResetPassword() {
       );
     }
   };
+
+  if (verifying) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#EF4249" />
+        <Text style={styles.verifyingText}>Verifying reset link...</Text>
+      </View>
+    );
+  }
+
+  if (!tokenVerified) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Invalid or expired link</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -142,5 +201,16 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  verifyingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4249',
+    textAlign: 'center',
   },
 });

@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import HandwrittenText from '../components/HandwrittenText';
-import { signIn, signUp, signInWithApple, isAppleAuthAvailable, resendVerificationEmail } from '../services/auth';
+import { signIn, signUp, signInWithApple, isAppleAuthAvailable, resendVerificationEmail, resetPassword } from '../services/auth';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function AuthScreen() {
@@ -26,6 +26,8 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [showAppleAuth, setShowAppleAuth] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -135,6 +137,27 @@ export default function AuthScreen() {
     }
   }
 
+  async function handleForgotPassword() {
+    if (!resetEmail) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resetPassword(resetEmail);
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Error', 'Failed to send reset email. Please try again.');
+    } else {
+      Alert.alert(
+        'Email Sent',
+        'Check your email for a password reset link.',
+        [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
+      );
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -204,6 +227,18 @@ export default function AuthScreen() {
               autoCapitalize="none"
             />
 
+            {!isSignUp && !showForgotPassword && !pendingVerificationEmail && (
+              <TouchableOpacity
+                style={styles.forgotPasswordButton}
+                onPress={() => {
+                  setShowForgotPassword(true);
+                  setResetEmail(email);
+                }}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            )}
+
             {isSignUp && (
               <TouchableOpacity
                 style={styles.ageCheckbox}
@@ -221,7 +256,41 @@ export default function AuthScreen() {
               </TouchableOpacity>
             )}
 
-            {pendingVerificationEmail ? (
+            {showForgotPassword ? (
+              <View style={styles.forgotPasswordContainer}>
+                <Text style={styles.forgotPasswordTitle}>Reset Password</Text>
+                <Text style={styles.forgotPasswordSubtitle}>
+                  Enter your email and we'll send you a reset link
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#999"
+                  value={resetEmail}
+                  onChangeText={setResetEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Send Reset Link</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => setShowForgotPassword(false)}
+                >
+                  <Text style={styles.backButtonText}>Back to Sign In</Text>
+                </TouchableOpacity>
+              </View>
+            ) : pendingVerificationEmail ? (
               <View style={styles.verificationNotice}>
                 <IconSymbol name="envelope.fill" size={40} color="#EF4249" />
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
@@ -507,5 +576,31 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#666',
     fontSize: 14,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: 4,
+    marginTop: -8,
+  },
+  forgotPasswordText: {
+    color: '#EF4249',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  forgotPasswordContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  forgotPasswordTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+  },
+  forgotPasswordSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

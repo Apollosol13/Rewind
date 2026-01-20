@@ -316,3 +316,37 @@ export async function uploadProfilePicture(userId: string, imageUri: string) {
     return { avatarUrl: null, error };
   }
 }
+
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email: string) {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'rewind://auth/reset-password', // Deep link back to app
+    });
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return { error };
+  }
+}
+
+/**
+ * Update password (after reset)
+ */
+export async function updatePassword(newPassword: string) {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return { error };
+  }
+}

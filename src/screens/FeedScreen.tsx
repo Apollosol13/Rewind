@@ -15,6 +15,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import PhotoCard from '../components/PhotoCard';
@@ -431,7 +432,9 @@ export default function FeedScreen() {
             tintColor="#EF4249"
           />
         }
-        contentContainerStyle={photos.length === 0 ? styles.emptyList : undefined}
+        contentContainerStyle={[
+          photos.length === 0 ? styles.emptyList : styles.centeredContent
+        ]}
         showsVerticalScrollIndicator={false}
       />
 
@@ -1184,5 +1187,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 16,
+  },
+  centeredContent: {
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
 });

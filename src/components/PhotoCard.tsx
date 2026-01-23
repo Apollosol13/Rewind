@@ -103,14 +103,16 @@ export default function PhotoCard({
       </View>
 
       {/* Polaroid Photo */}
-      <PolaroidFrame
-        imageUri={photo.image_url}
-        caption={photo.caption}
-        date={photo.created_at}
-        showRainbow={true}
-        width={340}
-        filterId={photo.photo_style as any || 'polaroid'}
-      />
+      <View style={styles.polaroidContainer}>
+        <PolaroidFrame
+          imageUri={photo.image_url}
+          caption={photo.caption}
+          date={photo.created_at}
+          showRainbow={true}
+          width={340}
+          filterId={photo.photo_style as any || 'polaroid'}
+        />
+      </View>
 
       {/* Action Buttons */}
       <View style={styles.actions}>
@@ -231,6 +233,10 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     padding: 4,
+  },
+  polaroidContainer: {
+    alignItems: 'center',
+    width: '100%',
   },
   actions: {
     flexDirection: 'row',

@@ -12,6 +12,7 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
@@ -31,6 +32,11 @@ import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemain
 import { savePreferredPostHour } from '../services/notificationPreferences';
 import { scheduleSmartDailyNotification } from '../services/notifications';
 import * as Haptics from 'expo-haptics';
+
+// Screen size helpers for responsive layout
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isTablet = SCREEN_WIDTH >= 768;
+const MAX_CAMERA_WIDTH = 500; // Maximum width for camera frame on tablets
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -456,8 +462,8 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#E8E5DC',
     paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 15,
+    paddingBottom: isTablet ? 50 : 30,
+    paddingHorizontal: isTablet ? 40 : 15,
   },
   topSection: {
     flexDirection: 'row',
@@ -571,6 +577,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+    maxWidth: MAX_CAMERA_WIDTH,
+    alignSelf: 'center',
+    width: isTablet ? '90%' : undefined,
   },
   rainbowContainer: {
     alignItems: 'center',
@@ -588,7 +597,7 @@ const styles = StyleSheet.create({
   },
   lcdFrame: {
     width: '100%',
-    aspectRatio: 0.85,
+    aspectRatio: isTablet ? 0.75 : 0.85,
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
     padding: 6,
@@ -621,15 +630,18 @@ const styles = StyleSheet.create({
   },
   controlsSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 25,
-    paddingHorizontal: 10,
+    paddingHorizontal: isTablet ? 60 : 20,
     marginTop: 20,
+    maxWidth: isTablet ? 600 : undefined,
+    alignSelf: 'center',
+    width: isTablet ? '85%' : '100%',
   },
   modeDialSection: {
     alignItems: 'center',
-    flex: 1,
+    width: isTablet ? 100 : 80,
   },
   modeLabel: {
     fontSize: 9,
@@ -641,7 +653,7 @@ const styles = StyleSheet.create({
   shutterSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    width: isTablet ? 120 : 100,
   },
   bigShutterButton: {
     width: 75,
@@ -669,11 +681,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   rightButtonsContainer: {
-    flex: 1,
     flexDirection: 'column',
     gap: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    width: isTablet ? 100 : 80,
   },
   flipCameraButton: {
     width: 50,

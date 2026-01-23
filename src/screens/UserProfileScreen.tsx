@@ -13,7 +13,11 @@ import {
   Platform,
   ActionSheetIOS,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isTablet = SCREEN_WIDTH >= 768;
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserProfile } from '../services/auth';
@@ -476,7 +480,7 @@ export default function UserProfileScreen() {
 
   const bulletinBoardHeight = Math.max(
     600,
-    Math.ceil((monthlyPhotos[currentMonthIndex]?.photos.length || 0) / 2) * 260 + 80
+    Math.ceil((monthlyPhotos[currentMonthIndex]?.photos.length || 0) / (isTablet ? 3 : 2)) * (isTablet ? 220 : 260) + 80
   );
 
   return (
@@ -634,9 +638,18 @@ export default function UserProfileScreen() {
 
               <View style={[styles.bulletinBoard, { height: bulletinBoardHeight }]}>
                 {monthlyPhotos[currentMonthIndex]?.photos.map((photo, index) => {
-                  const col = index % 2;
-                  const row = Math.floor(index / 2);
+                  const numCols = isTablet ? 3 : 2;
+                  const col = index % numCols;
+                  const row = Math.floor(index / numCols);
                   const rotations = [-4, 3, -3, 5, -2, 4];
+
+                  // Calculate left position based on column
+                  let leftPos = '8%';
+                  if (isTablet) {
+                    leftPos = col === 0 ? '5%' : col === 1 ? '37%' : '69%';
+                  } else {
+                    leftPos = col === 0 ? '8%' : '52%';
+                  }
 
                   return (
                     <TouchableOpacity
@@ -647,9 +660,9 @@ export default function UserProfileScreen() {
                           transform: [
                             { rotate: `${rotations[index % rotations.length]}deg` },
                           ],
-                          left: col === 0 ? '8%' : '52%',
-                          top: row * 260 + 20,
-                          width: '40%',
+                          left: leftPos,
+                          top: row * (isTablet ? 220 : 260) + 20,
+                          width: isTablet ? '28%' : '40%',
                         },
                       ]}
                       onPress={() => {
@@ -1376,7 +1389,7 @@ const styles = StyleSheet.create({
     padding: 20,
     position: 'relative',
     borderRadius: 8,
-    marginHorizontal: 10,
+    marginHorizontal: isTablet ? 40 : 10,
     marginTop: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1385,6 +1398,11 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 8,
     borderColor: '#8B7355',
+    ...(isTablet && {
+      maxWidth: 900,
+      alignSelf: 'center',
+      width: '95%',
+    }),
   },
   pinnedPolaroid: {
     position: 'absolute',

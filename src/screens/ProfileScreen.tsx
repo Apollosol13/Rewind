@@ -20,13 +20,16 @@ import {
   Linking,
   Share,
 } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isTablet = SCREEN_WIDTH >= 768;
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import HandwrittenText from '../components/HandwrittenText';
 import PolaroidFrame from '../components/PolaroidFrame';
 import FilterOverlay from '../components/FilterOverlay';
-import { getCurrentUser, getUserProfile, signOut, updateUserProfile, uploadProfilePicture } from '../services/auth';
+import { getCurrentUser, getUserProfile, signOut, updateUserProfile, uploadProfilePicture, deleteAccount } from '../services/auth';
 import { 
   getUserPhotos, 
   deletePhoto,
@@ -50,8 +53,6 @@ import {
 } from '../services/notifications';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { captureRef } from 'react-native-view-shot';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface MonthlyPhotos {
   month: string;
@@ -199,6 +200,49 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone. All your photos, comments, and data will be permanently deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              'This is your last chance. Delete your account permanently?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Forever',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setUploading(true);
+                    const { error } = await deleteAccount(user.id);
+                    setUploading(false);
+
+                    if (error) {
+                      Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
+                      return;
+                    }
+
+                    // Account deleted, redirect to auth
+                    router.replace('/auth');
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const enableNotifications = async () => {
     const { granted } = await requestNotificationPermissions();
     if (granted) {
@@ -336,9 +380,9 @@ export default function ProfileScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Edit Profile', 'Add Sticky Note', 'Notification Settings', 'Privacy Policy', 'Terms of Service', 'Sign Out'],
+          options: ['Cancel', 'Edit Profile', 'Add Sticky Note', 'Notification Settings', 'Privacy Policy', 'Terms of Service', 'Delete Account', 'Sign Out'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 6,
+          destructiveButtonIndex: [6, 7],
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
@@ -352,6 +396,8 @@ export default function ProfileScreen() {
           } else if (buttonIndex === 5) {
             Linking.openURL('https://apollosol13.github.io/rewind-privacy-policy/terms.html');
           } else if (buttonIndex === 6) {
+            handleDeleteAccount();
+          } else if (buttonIndex === 7) {
             handleSignOut();
           }
         }
@@ -502,7 +548,7 @@ export default function ProfileScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Share to Story', 'Delete Rewind'],
+          options: ['Cancel', 'Share to Story', 'Delete REWND'],
           destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
@@ -526,7 +572,7 @@ export default function ProfileScreen() {
             onPress: handleSharePhoto,
           },
           {
-            text: 'Delete Rewind',
+            text: 'Delete REWND',
             style: 'destructive',
             onPress: () => confirmDelete(selectedPhoto.id),
           },
@@ -537,7 +583,7 @@ export default function ProfileScreen() {
 
   const confirmDelete = (photoId: string) => {
     Alert.alert(
-      'Delete Rewind',
+      'Delete REWND',
       'Are you sure? This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -676,16 +722,25 @@ export default function ProfileScreen() {
                   { 
                     height: Math.max(
                       600, 
-                      Math.ceil(((monthlyPhotos[currentMonthIndex]?.photos.length || 0) + stickyNotes.length) / 2) * 260 + 80
+                      Math.ceil(((monthlyPhotos[currentMonthIndex]?.photos.length || 0) + stickyNotes.length) / (isTablet ? 3 : 2)) * (isTablet ? 220 : 260) + 80
                     )
                   }
                 ]}
               >
                 {/* Render Photos */}
                 {monthlyPhotos[currentMonthIndex]?.photos.map((photo, index) => {
-                  const col = index % 2;
-                  const row = Math.floor(index / 2);
+                  const numCols = isTablet ? 3 : 2;
+                  const col = index % numCols;
+                  const row = Math.floor(index / numCols);
                   const rotations = [-4, 3, -3, 5, -2, 4]; // Random-looking rotations
+                  
+                  // Calculate left position based on column
+                  let leftPos = '8%';
+                  if (isTablet) {
+                    leftPos = col === 0 ? '5%' : col === 1 ? '37%' : '69%';
+                  } else {
+                    leftPos = col === 0 ? '8%' : '52%';
+                  }
                   
                   return (
                     <TouchableOpacity
@@ -696,8 +751,8 @@ export default function ProfileScreen() {
                           transform: [
                             { rotate: `${rotations[index % rotations.length]}deg` },
                           ],
-                          left: col === 0 ? '8%' : '52%',
-                          top: row * 260 + 20,
+                          left: leftPos,
+                          top: row * (isTablet ? 220 : 260) + 20,
                         },
                       ]}
                       onPress={() => {
@@ -756,9 +811,18 @@ export default function ProfileScreen() {
                 {stickyNotes.map((note, index) => {
                   const photoCount = monthlyPhotos[currentMonthIndex]?.photos.length || 0;
                   const totalIndex = photoCount + index;
-                  const col = totalIndex % 2;
-                  const row = Math.floor(totalIndex / 2);
+                  const numCols = isTablet ? 3 : 2;
+                  const col = totalIndex % numCols;
+                  const row = Math.floor(totalIndex / numCols);
                   const rotations = [-4, 3, -3, 5, -2, 4];
+                  
+                  // Calculate left position based on column
+                  let leftPos = '8%';
+                  if (isTablet) {
+                    leftPos = col === 0 ? '5%' : col === 1 ? '37%' : '69%';
+                  } else {
+                    leftPos = col === 0 ? '8%' : '52%';
+                  }
                   
                   return (
                     <TouchableOpacity
@@ -769,8 +833,8 @@ export default function ProfileScreen() {
                           transform: [
                             { rotate: `${rotations[totalIndex % rotations.length]}deg` },
                           ],
-                          left: col === 0 ? '8%' : '52%',
-                          top: row * 260 + 20,
+                          left: leftPos,
+                          top: row * (isTablet ? 220 : 260) + 20,
                         },
                       ]}
                       onPress={() => setSelectedNote(note)}
@@ -877,6 +941,17 @@ export default function ProfileScreen() {
               >
                 <IconSymbol name="doc.text.fill" size={24} color="#333" />
                 <Text style={styles.menuItemText}>Terms of Service</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.menuItem, styles.menuItemDanger]}
+                onPress={() => {
+                  setShowSettingsMenu(false);
+                  handleDeleteAccount();
+                }}
+              >
+                <IconSymbol name="trash.fill" size={24} color="#EF4249" />
+                <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Delete Account</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -1450,7 +1525,7 @@ const styles = StyleSheet.create({
     padding: 20,
     position: 'relative',
     borderRadius: 8,
-    marginHorizontal: 10,
+    marginHorizontal: isTablet ? 40 : 10,
     marginTop: 10,
     marginBottom: 40,
     shadowColor: '#000',
@@ -1460,15 +1535,20 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 8,
     borderColor: '#8B7355', // Dark wood frame
+    ...(isTablet && {
+      maxWidth: 900,
+      alignSelf: 'center',
+      width: '95%',
+    }),
   },
   pinnedPolaroid: {
     position: 'absolute',
-    width: '40%',
+    width: isTablet ? '28%' : '40%',
     zIndex: 1,
   },
   pinnedStickyNote: {
     position: 'absolute',
-    width: '40%',
+    width: isTablet ? '28%' : '40%',
     zIndex: 1,
   },
   tape: {

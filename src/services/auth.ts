@@ -350,3 +350,47 @@ export async function updatePassword(newPassword: string) {
     return { error };
   }
 }
+
+/**
+ * Delete user account and all associated data
+ */
+export async function deleteAccount(userId: string) {
+  try {
+    // 1. Delete user's sticky notes
+    await supabase.from('sticky_notes').delete().eq('user_id', userId);
+
+    // 2. Delete user's follows (follower and following)
+    await supabase.from('follows').delete().eq('follower_id', userId);
+    await supabase.from('follows').delete().eq('following_id', userId);
+
+    // 3. Delete user's likes
+    await supabase.from('likes').delete().eq('user_id', userId);
+
+    // 4. Delete user's comments
+    await supabase.from('comments').delete().eq('user_id', userId);
+
+    // 5. Delete user's photos
+    const { error: photosError } = await supabase
+      .from('photos')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (photosError) throw photosError;
+
+    // 6. Delete user profile
+    const { error: profileError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileError) throw profileError;
+
+    // 7. Sign out (Supabase will handle auth user cleanup)
+    await supabase.auth.signOut();
+
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    return { error };
+  }
+}

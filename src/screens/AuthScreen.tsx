@@ -23,6 +23,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAppleAuth, setShowAppleAuth] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
@@ -47,6 +48,11 @@ export default function AuthScreen() {
 
     if (isSignUp && !ageConfirmed) {
       Alert.alert('Age Requirement', 'You must be at least 13 years old to use Rewind. Please confirm your age.');
+      return;
+    }
+
+    if (isSignUp && !termsAccepted) {
+      Alert.alert('Terms Required', 'You must accept the Terms of Service to create an account. Our terms prohibit objectionable content and abusive behavior.');
       return;
     }
 
@@ -240,20 +246,47 @@ export default function AuthScreen() {
             )}
 
             {isSignUp && (
-              <TouchableOpacity
-                style={styles.ageCheckbox}
-                onPress={() => setAgeConfirmed(!ageConfirmed)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.checkbox, ageConfirmed && styles.checkboxChecked]}>
-                  {ageConfirmed && (
-                    <IconSymbol name="checkmark" size={16} color="#FFF" />
-                  )}
-                </View>
-                <Text style={styles.ageCheckboxText}>
-                  I confirm I am at least 13 years old
-                </Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.ageCheckbox}
+                  onPress={() => setAgeConfirmed(!ageConfirmed)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, ageConfirmed && styles.checkboxChecked]}>
+                    {ageConfirmed && (
+                      <IconSymbol name="checkmark" size={16} color="#FFF" />
+                    )}
+                  </View>
+                  <Text style={styles.ageCheckboxText}>
+                    I confirm I am at least 13 years old
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.ageCheckbox}
+                  onPress={() => setTermsAccepted(!termsAccepted)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                    {termsAccepted && (
+                      <IconSymbol name="checkmark" size={16} color="#FFF" />
+                    )}
+                  </View>
+                  <Text style={styles.ageCheckboxText}>
+                    I agree to the{' '}
+                    <Text
+                      style={styles.termsLink}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Linking.openURL('https://apollosol13.github.io/rewind-privacy-policy/terms.html');
+                      }}
+                    >
+                      Terms of Service
+                    </Text>
+                    {' '}which prohibit objectionable content and abusive behavior
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
 
             {showForgotPassword ? (
@@ -516,6 +549,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     flex: 1,
+  },
+  termsLink: {
+    color: '#EF4249',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   divider: {
     flexDirection: 'row',

@@ -64,11 +64,37 @@ export async function uploadPhoto(
 }
 
 /**
- * Get feed of recent photos
+ * Get feed of recent photos (excludes blocked users)
  */
 export async function getFeed(limit: number = 20) {
   try {
-    const { data, error } = await supabase
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { photos: [], error: 'Not authenticated' };
+    }
+
+    // Get list of blocked user IDs
+    const { data: blockedData } = await supabase
+      .from('blocked_users')
+      .select('blocked_id')
+      .eq('blocker_id', user.id);
+    
+    const blockedUserIds = blockedData?.map(b => b.blocked_id) || [];
+
+    // Also get users who have blocked current user (mutual block)
+    const { data: blockedByData } = await supabase
+      .from('blocked_users')
+      .select('blocker_id')
+      .eq('blocked_id', user.id);
+    
+    const blockedByUserIds = blockedByData?.map(b => b.blocker_id) || [];
+
+    // Combine both lists
+    const allBlockedUserIds = [...new Set([...blockedUserIds, ...blockedByUserIds])];
+
+    // Fetch photos
+    let query = supabase
       .from('photos')
       .select(`
         *,
@@ -81,6 +107,13 @@ export async function getFeed(limit: number = 20) {
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Exclude blocked users if any
+    if (allBlockedUserIds.length > 0) {
+      query = query.not('user_id', 'in', `(${allBlockedUserIds.join(',')})`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

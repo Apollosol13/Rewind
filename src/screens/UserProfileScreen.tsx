@@ -211,7 +211,7 @@ export default function UserProfileScreen() {
       // Block user
       Alert.alert(
         'Block User',
-        `Block @${user?.username}? You won't see each other's content and you'll both be unfollowed.`,
+        `Block @${user?.username}? Their content will be removed from your feed instantly, you won't see each other's posts, and you'll both be unfollowed.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -223,7 +223,7 @@ export default function UserProfileScreen() {
                 setIsBlocked(true);
                 setIsFollowingUser(false);
                 setIsMutualFollowers(false);
-                Alert.alert('Blocked', `You have blocked @${user?.username}`);
+                Alert.alert('Blocked', `You have blocked @${user?.username}. Their content has been removed from your feed.`);
                 router.back(); // Go back to previous screen
               } else {
                 Alert.alert('Error', 'Failed to block user');

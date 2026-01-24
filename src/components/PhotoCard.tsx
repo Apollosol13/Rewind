@@ -19,6 +19,7 @@ interface PhotoCardProps {
   onReply: (comment: any) => void;
   onDeleteComment: (commentId: string) => void;
   onReport?: () => void;
+  onReportComment?: (commentId: string, reportedUserId: string) => void;
 }
 
 export default function PhotoCard({ 
@@ -32,7 +33,8 @@ export default function PhotoCard({
   onViewAllComments,
   onReply,
   onDeleteComment,
-  onReport
+  onReport,
+  onReportComment
 }: PhotoCardProps) {
   const router = useRouter();
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -146,7 +148,27 @@ export default function PhotoCard({
       {topComments.length > 0 && (
         <View style={styles.commentsPreview}>
           {topComments.map((comment) => (
-            <View key={comment.id} style={styles.commentRowContainer}>
+            <TouchableOpacity
+              key={comment.id}
+              style={styles.commentRowContainer}
+              onLongPress={() => {
+                if (comment.user_id !== currentUserId && onReportComment) {
+                  Alert.alert(
+                    'Report Comment',
+                    'Report this comment as inappropriate?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Report', 
+                        style: 'destructive',
+                        onPress: () => onReportComment(comment.id, comment.user_id)
+                      }
+                    ]
+                  );
+                }
+              }}
+              activeOpacity={comment.user_id !== currentUserId ? 0.7 : 1}
+            >
               <View style={styles.commentRow}>
                 <TouchableOpacity onPress={() => comment.users?.id && router.push(`/user/${comment.users.id}`)}>
                   <Text style={styles.commentUsername}>@{comment.users?.username}</Text>
@@ -161,7 +183,7 @@ export default function PhotoCard({
                   <IconSymbol name="trash" size={14} color="#EF4249" />
                 </TouchableOpacity>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}

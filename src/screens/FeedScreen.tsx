@@ -36,6 +36,7 @@ import { hasPostedToday as checkHasPostedToday } from '../services/dailyPost';
 import { searchUsers, getSuggestedUsers } from '../services/search';
 import { findContactsOnApp } from '../services/contacts';
 import { isFollowing, followUser, unfollowUser } from '../services/follows';
+import { reportPhoto, reportComment, ReportReason } from '../services/reports';
 import { Photo, User } from '../config/supabase';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
@@ -217,6 +218,127 @@ export default function FeedScreen() {
           p.id === photoId ? { ...p, comments_count: fetchedComments.length } : p
         ));
       }
+    }
+  };
+
+  const handleReportPhoto = async (photo: Photo) => {
+    if (!currentUserId) return;
+
+    const reasons: ReportReason[] = [
+      'spam',
+      'harassment',
+      'hate_speech',
+      'violence',
+      'nudity',
+      'inappropriate',
+      'other',
+    ];
+
+    const getReasonDisplayText = (reason: ReportReason): string => {
+      const displayTexts: Record<ReportReason, string> = {
+        spam: 'Spam',
+        harassment: 'Harassment',
+        hate_speech: 'Hate Speech',
+        violence: 'Violence',
+        nudity: 'Nudity or Sexual Content',
+        inappropriate: 'Inappropriate Content',
+        impersonation: 'Impersonation',
+        other: 'Other',
+      };
+      return displayTexts[reason];
+    };
+
+    Alert.alert(
+      'Report Photo',
+      `Why are you reporting @${photo.users?.username}'s photo?`,
+      [
+        ...reasons.map(reason => ({
+          text: getReasonDisplayText(reason),
+          onPress: () => submitPhotoReport(photo, reason),
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const submitPhotoReport = async (photo: Photo, reason: ReportReason) => {
+    if (!currentUserId) return;
+    
+    const { error } = await reportPhoto(
+      currentUserId,
+      photo.id,
+      photo.user_id,
+      reason
+    );
+    
+    if (!error) {
+      Alert.alert(
+        'Report Submitted',
+        'Thank you for helping keep REWND safe. We\'ll review this report within 24 hours.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert('Error', 'Failed to submit report. Please try again.');
+    }
+  };
+
+  const handleReportComment = async (commentId: string, reportedUserId: string) => {
+    if (!currentUserId) return;
+
+    const reasons: ReportReason[] = [
+      'spam',
+      'harassment',
+      'hate_speech',
+      'violence',
+      'inappropriate',
+      'other',
+    ];
+
+    const getReasonDisplayText = (reason: ReportReason): string => {
+      const displayTexts: Record<ReportReason, string> = {
+        spam: 'Spam',
+        harassment: 'Harassment',
+        hate_speech: 'Hate Speech',
+        violence: 'Violence',
+        nudity: 'Nudity or Sexual Content',
+        inappropriate: 'Inappropriate Content',
+        impersonation: 'Impersonation',
+        other: 'Other',
+      };
+      return displayTexts[reason];
+    };
+
+    Alert.alert(
+      'Report Comment',
+      'Why are you reporting this comment?',
+      [
+        ...reasons.map(reason => ({
+          text: getReasonDisplayText(reason),
+          onPress: () => submitCommentReport(commentId, reportedUserId, reason),
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const submitCommentReport = async (commentId: string, reportedUserId: string, reason: ReportReason) => {
+    if (!currentUserId) return;
+    
+    const { error } = await reportComment(
+      currentUserId,
+      commentId,
+      reportedUserId,
+      reason
+    );
+    
+    if (!error) {
+      Alert.alert(
+        'Report Submitted',
+        'Thank you. We\'ll review this comment within 24 hours.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert('Error', 'Failed to submit report. Please try again.');
     }
   };
 
@@ -420,6 +542,8 @@ export default function FeedScreen() {
               setReplyingTo(comment);
             }}
             onDeleteComment={(commentId) => handleDeleteComment(item.id, commentId)}
+            onReport={() => handleReportPhoto(item)}
+            onReportComment={handleReportComment}
           />
         )}
         keyExtractor={(item) => item.id}

@@ -40,7 +40,7 @@ export async function followUser(followerId: string, followingId: string) {
         
         if (followerData) {
           console.log('🔔 Sending follower notification to:', followingId);
-          await sendNewFollowerNotification(followingId, followerData.username);
+          await sendNewFollowerNotification(followingId, followerData.username, followerId);
         }
       }
     }

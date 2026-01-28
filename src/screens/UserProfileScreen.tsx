@@ -18,7 +18,7 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isTablet = SCREEN_WIDTH >= 768;
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserProfile } from '../services/auth';
 import { 
@@ -79,6 +79,15 @@ export default function UserProfileScreen() {
   useEffect(() => {
     loadUserProfile();
   }, [userId]);
+
+  // Reload profile when screen comes into focus (syncs comments/likes from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        loadUserProfile();
+      }
+    }, [userId])
+  );
 
   useEffect(() => {
     if (photos.length > 0) {
@@ -363,7 +372,11 @@ export default function UserProfileScreen() {
       
       // Load comments
       const { comments } = await getComments(photoId);
-      setPhotoComments(prev => ({ ...prev, [photoId]: comments || [] }));
+      // Ensure unique comments by ID (prevents duplicates)
+      const uniqueComments = Array.from(
+        new Map((comments || []).map(c => [c.id, c])).values()
+      );
+      setPhotoComments(prev => ({ ...prev, [photoId]: uniqueComments }));
     } catch (error) {
       console.error('Error loading photo details:', error);
     }

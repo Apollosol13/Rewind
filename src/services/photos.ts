@@ -2,7 +2,7 @@ import { supabase } from '../config/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from '../utils/base64';
 import { shouldSendNotification } from './notificationPreferences';
-import { sendPhotoLikedNotification, sendPhotoCommentedNotification } from './notifications';
+import { sendPhotoLikedNotification, sendPhotoCommentedNotification, sendFriendPostedNotification } from './notifications';
 
 /**
  * Upload a photo to Supabase Storage and create database entry
@@ -55,6 +55,41 @@ export async function uploadPhoto(
       .single();
 
     if (error) throw error;
+
+    // 6. Notify followers who want friend posted notifications
+    if (data) {
+      try {
+        // Get poster's username
+        const { data: userData } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', userId)
+          .single();
+
+        if (userData) {
+          // Get all followers
+          const { data: followers } = await supabase
+            .from('follows')
+            .select('follower_id')
+            .eq('following_id', userId);
+
+          if (followers && followers.length > 0) {
+            console.log(`📸 Notifying ${followers.length} followers about new post from @${userData.username}`);
+            
+            // Send notification to each follower who wants it
+            for (const follower of followers) {
+              const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
+              if (wantsNotif) {
+                await sendFriendPostedNotification(follower.follower_id, userData.username, data.id);
+              }
+            }
+          }
+        }
+      } catch (notifError) {
+        // Don't fail the upload if notifications fail
+        console.error('Error sending friend posted notifications:', notifError);
+      }
+    }
 
     return { photo: data, error: null };
   } catch (error) {
@@ -282,7 +317,7 @@ export async function likePhoto(photoId: string, userId: string) {
         
         if (likerData) {
           console.log('🔔 Sending like notification to photo owner:', photoData.user_id);
-          await sendPhotoLikedNotification(photoData.user_id, likerData.username);
+          await sendPhotoLikedNotification(photoData.user_id, likerData.username, photoId);
         }
       }
     } else if (photoData?.user_id === userId) {
@@ -363,7 +398,7 @@ export async function addComment(photoId: string, userId: string, text: string) 
           
           if (commenterData) {
             console.log('🔔 Sending comment notification to photo owner:', photoData.user_id);
-            await sendPhotoCommentedNotification(photoData.user_id, commenterData.username, text);
+            await sendPhotoCommentedNotification(photoData.user_id, commenterData.username, text, photoId);
           }
         }
       } else if (photoData?.user_id === userId) {

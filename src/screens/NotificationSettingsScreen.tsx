@@ -68,6 +68,12 @@ const notificationSettings: NotificationSetting[] = [
     description: 'When someone starts following you',
     icon: 'person.fill.badge.plus',
   },
+  {
+    key: 'notif_friend_posted',
+    title: 'Friend Posted',
+    description: 'When someone you follow posts a Rewind',
+    icon: 'photo.on.rectangle.angled',
+  },
 ];
 
 export default function NotificationSettingsScreen() {

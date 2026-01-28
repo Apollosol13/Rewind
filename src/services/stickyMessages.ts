@@ -197,7 +197,7 @@ export async function sendStickyMessage(
         
         if (senderData) {
           console.log('🔔 Sending message notification to recipient:', recipientId);
-          await sendNewMessageNotification(recipientId, senderData.username);
+          await sendNewMessageNotification(recipientId, senderData.username, data.id);
         }
       }
     }

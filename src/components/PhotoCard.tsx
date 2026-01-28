@@ -85,6 +85,10 @@ export default function PhotoCard({
     );
   };
 
+  const handleReplyToComment = (comment: any) => {
+    onReply(comment);
+  };
+
   const topComments = comments.filter(c => !c.parent_comment_id).slice(0, 2);
 
   return (
@@ -148,42 +152,50 @@ export default function PhotoCard({
       {topComments.length > 0 && (
         <View style={styles.commentsPreview}>
           {topComments.map((comment) => (
-            <TouchableOpacity
-              key={comment.id}
-              style={styles.commentRowContainer}
-              onLongPress={() => {
-                if (comment.user_id !== currentUserId && onReportComment) {
-                  Alert.alert(
-                    'Report Comment',
-                    'Report this comment as inappropriate?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { 
-                        text: 'Report', 
-                        style: 'destructive',
-                        onPress: () => onReportComment(comment.id, comment.user_id)
-                      }
-                    ]
-                  );
-                }
-              }}
-              activeOpacity={comment.user_id !== currentUserId ? 0.7 : 1}
-            >
-              <View style={styles.commentRow}>
-                <TouchableOpacity onPress={() => comment.users?.id && router.push(`/user/${comment.users.id}`)}>
-                  <Text style={styles.commentUsername}>@{comment.users?.username}</Text>
-                </TouchableOpacity>
-                <Text style={styles.commentText}>{comment.text}</Text>
-              </View>
-              {comment.user_id === currentUserId && (
-                <TouchableOpacity 
-                  onPress={() => handleDeleteComment(comment.id)}
-                  style={styles.deleteButton}
-                >
-                  <IconSymbol name="trash" size={14} color="#EF4249" />
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
+            <View key={comment.id}>
+              <TouchableOpacity
+                style={styles.commentRowContainer}
+                onLongPress={() => {
+                  if (comment.user_id !== currentUserId && onReportComment) {
+                    Alert.alert(
+                      'Report Comment',
+                      'Report this comment as inappropriate?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Report', 
+                          style: 'destructive',
+                          onPress: () => onReportComment(comment.id, comment.user_id)
+                        }
+                      ]
+                    );
+                  }
+                }}
+                activeOpacity={comment.user_id !== currentUserId ? 0.7 : 1}
+              >
+                <View style={styles.commentRow}>
+                  <TouchableOpacity onPress={() => comment.users?.id && router.push(`/user/${comment.users.id}`)}>
+                    <Text style={styles.commentUsername}>@{comment.users?.username}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.commentText}>{comment.text}</Text>
+                </View>
+                {comment.user_id === currentUserId && (
+                  <TouchableOpacity 
+                    onPress={() => handleDeleteComment(comment.id)}
+                    style={styles.deleteButton}
+                  >
+                    <IconSymbol name="trash" size={14} color="#EF4249" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+              {/* Reply button below comment */}
+              <TouchableOpacity 
+                onPress={() => handleReplyToComment(comment)}
+                style={styles.replyButtonContainer}
+              >
+                <Text style={styles.replyButtonText}>Reply</Text>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
       )}
@@ -325,5 +337,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 80,
+  },
+  replyButtonContainer: {
+    paddingLeft: 16,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  replyButtonText: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '500',
   },
 });

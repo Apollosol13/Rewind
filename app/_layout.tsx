@@ -1,10 +1,12 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, Linking, Alert } from 'react-native';
 import 'react-native-reanimated';
+import * as Notifications from 'expo-notifications';
 import { supabase } from '../src/config/supabase';
 import { verifyEmail } from '../src/services/auth';
+import { handleNotificationNavigation } from '../src/services/notificationNavigation';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -15,6 +17,8 @@ export default function RootLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
   const segments = useSegments();
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
     // Check initial session
@@ -66,11 +70,44 @@ export default function RootLayout() {
       }
     });
 
+    // Handle notification taps
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data;
+      
+      if (!isAuthenticated) {
+        console.log('⚠️ User not authenticated, ignoring notification tap');
+        return;
+      }
+
+      handleNotificationNavigation(data);
+    };
+
+    // Listen for notifications received while app is foregrounded
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('🔔 Notification received:', notification);
+    });
+
+    // Listen for notification taps
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+
+    // Check if app was opened from a notification
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        handleNotificationResponse(response);
+      }
+    });
+
     return () => {
       authListener.subscription.unsubscribe();
       subscription.remove();
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const checkAuth = async () => {
     try {

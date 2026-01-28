@@ -62,18 +62,17 @@ export default function CameraScreen() {
   }, []);
 
   // Check daily post status on mount
-  // TEMPORARILY DISABLED FOR TESTING
-  // useEffect(() => {
-  //   checkDailyPostStatus();
-  //   updateTimeRemaining();
-  //   
-  //   // Update countdown every minute
-  //   const interval = setInterval(() => {
-  //     updateTimeRemaining();
-  //   }, 60000);
-  //   
-  //   return () => clearInterval(interval);
-  // }, []);
+  useEffect(() => {
+    checkDailyPostStatus();
+    updateTimeRemaining();
+    
+    // Update countdown every minute
+    const interval = setInterval(() => {
+      updateTimeRemaining();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const checkDailyPostStatus = async () => {
     const { user } = await getCurrentUser();
@@ -225,15 +224,15 @@ export default function CameraScreen() {
           return;
         }
 
-        // Record daily post (commented out to avoid duplicate key errors during testing)
-        // if (photo) {
-        //   await recordDailyPost(user.id, photo.id);
-        //   setAlreadyPosted(true);
-        //   
-        //   const currentHour = new Date().getHours();
-        //   await savePreferredPostHour(user.id, currentHour);
-        //   await scheduleSmartDailyNotification(currentHour);
-        // }
+        // Record daily post and schedule personalized notification
+        if (photo) {
+          await recordDailyPost(user.id, photo.id);
+          setAlreadyPosted(true);
+          
+          const currentHour = new Date().getHours();
+          await savePreferredPostHour(user.id, currentHour);
+          await scheduleSmartDailyNotification(currentHour);
+        }
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

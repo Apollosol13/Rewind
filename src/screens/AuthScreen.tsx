@@ -247,20 +247,20 @@ export default function AuthScreen() {
 
             {isSignUp && (
               <>
-                <TouchableOpacity
-                  style={styles.ageCheckbox}
-                  onPress={() => setAgeConfirmed(!ageConfirmed)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.checkbox, ageConfirmed && styles.checkboxChecked]}>
-                    {ageConfirmed && (
-                      <IconSymbol name="checkmark" size={16} color="#FFF" />
-                    )}
-                  </View>
-                  <Text style={styles.ageCheckboxText}>
-                    I confirm I am at least 13 years old
-                  </Text>
-                </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.ageCheckbox}
+                onPress={() => setAgeConfirmed(!ageConfirmed)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, ageConfirmed && styles.checkboxChecked]}>
+                  {ageConfirmed && (
+                    <IconSymbol name="checkmark" size={16} color="#FFF" />
+                  )}
+                </View>
+                <Text style={styles.ageCheckboxText}>
+                  I confirm I am at least 13 years old
+                </Text>
+              </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.ageCheckbox}

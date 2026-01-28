@@ -95,6 +95,13 @@ export default function ProfileScreen() {
     loadProfile();
   }, []);
 
+  // Reload profile when screen comes into focus (syncs comments/likes from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadProfile();
+    }, [])
+  );
+
   useEffect(() => {
     if (photos.length > 0) {
       organizePhotosByMonth();
@@ -455,7 +462,11 @@ export default function ProfileScreen() {
       
       // Load comments
       const { comments } = await getComments(photoId);
-      setPhotoComments(prev => ({ ...prev, [photoId]: comments || [] }));
+      // Ensure unique comments by ID (prevents duplicates)
+      const uniqueComments = Array.from(
+        new Map((comments || []).map(c => [c.id, c])).values()
+      );
+      setPhotoComments(prev => ({ ...prev, [photoId]: uniqueComments }));
     } catch (error) {
       console.error('Error loading photo details:', error);
     }
@@ -548,14 +559,12 @@ export default function ProfileScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Share to Story', 'Delete REWND'],
-          destructiveButtonIndex: 2,
+          options: ['Cancel', 'Delete REWND'],
+          destructiveButtonIndex: 1,
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            handleSharePhoto();
-          } else if (buttonIndex === 2) {
             confirmDelete(selectedPhoto.id);
           }
         }
@@ -567,10 +576,6 @@ export default function ProfileScreen() {
         'What would you like to do?',
         [
           { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Share to Story',
-            onPress: handleSharePhoto,
-          },
           {
             text: 'Delete REWND',
             style: 'destructive',
@@ -1245,7 +1250,11 @@ export default function ProfileScreen() {
               {/* Photo */}
               {selectedPhoto && (
                 <View style={styles.photoContainer}>
-                  <View ref={polaroidRef} collapsable={false} style={styles.storyContainer}>
+                  <View 
+                    ref={polaroidRef} 
+                    collapsable={false} 
+                    style={styles.storyContainer}
+                  >
                     <PolaroidFrame
                       imageUri={selectedPhoto.image_url}
                       caption={selectedPhoto.caption}
@@ -1255,6 +1264,19 @@ export default function ProfileScreen() {
                       filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
                       showWatermark={showWatermark}
                     />
+                    
+                    {/* Share Button - Sticky Note on Cork Board (hidden when capturing for share) */}
+                    {!showWatermark && (
+                      <TouchableOpacity 
+                        style={styles.shareButtonSticky}
+                        onPress={handleSharePhoto}
+                        activeOpacity={0.8}
+                      >
+                        <HandwrittenText size={16} bold>
+                          Share
+                        </HandwrittenText>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               )}
@@ -1733,8 +1755,25 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   storyContainer: {
-    paddingHorizontal: 40,
-    paddingVertical: 40,
+    backgroundColor: '#B8956A', // Cork board background
+    paddingHorizontal: 50,
+    paddingTop: 40,
+    paddingBottom: 60,
+    alignItems: 'center',
+  },
+  shareButtonSticky: {
+    backgroundColor: '#EF4249', // Red sticky note (brand color)
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginTop: 20,
+    borderRadius: 2,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+    transform: [{ rotate: '-1.5deg' }], // Slight tilt for sticky note effect
   },
   actionsContainer: {
     flexDirection: 'row',

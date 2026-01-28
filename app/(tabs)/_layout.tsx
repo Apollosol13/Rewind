@@ -1,32 +1,37 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import MessagesTabIcon from '../../src/components/MessagesTabIcon';
+import { IconSymbol } from '../../components/ui/icon-symbol';
+import { HapticTab } from '../../components/haptic-tab';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: '#EF4249',
         tabBarInactiveTintColor: '#999',
-        headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E0E0E0',
+          backgroundColor: '#FFF',
           borderTopWidth: 1,
+          borderTopColor: '#F0F0F0',
+          height: 85,
+          paddingBottom: 25,
+          paddingTop: 10,
         },
-      }}>
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Feed',
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol 
-              size={28} 
               name={focused ? 'camera.fill' : 'camera'} 
+              size={28} 
               color={color} 
             />
           ),
@@ -37,7 +42,11 @@ export default function TabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ color, focused }) => (
-            <MessagesTabIcon color={color} focused={focused} />
+            <IconSymbol 
+              name={focused ? 'envelope.fill' : 'envelope'} 
+              size={28} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -47,8 +56,8 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol 
-              size={28} 
               name={focused ? 'person.fill' : 'person'} 
+              size={28} 
               color={color} 
             />
           ),

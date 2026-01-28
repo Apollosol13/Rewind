@@ -7,6 +7,7 @@ export interface NotificationPreferences {
   notif_photo_liked: boolean;
   notif_photo_commented: boolean;
   notif_new_follower: boolean;
+  notif_friend_posted: boolean;
   push_token?: string | null;
   preferred_post_hour?: number | null;
 }
@@ -18,7 +19,7 @@ export async function getNotificationPreferences(userId: string) {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('notif_daily_rewind, notif_new_message, notif_message_reminder, notif_photo_liked, notif_photo_commented, notif_new_follower, push_token, preferred_post_hour')
+      .select('notif_daily_rewind, notif_new_message, notif_message_reminder, notif_photo_liked, notif_photo_commented, notif_new_follower, notif_friend_posted, push_token, preferred_post_hour')
       .eq('id', userId)
       .single();
 

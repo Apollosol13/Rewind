@@ -258,13 +258,13 @@ export async function scheduleSmartDailyNotification(preferredHour?: number) {
 /**
  * Send notification for new message (Push notification to recipient)
  */
-export async function sendNewMessageNotification(recipientUserId: string, senderUsername: string) {
+export async function sendNewMessageNotification(recipientUserId: string, senderUsername: string, messageId?: string) {
   try {
     await sendPushNotificationToUser(
       recipientUserId,
       '📬 New Sticky Note!',
       `@${senderUsername} sent you a sticky note message`,
-      { type: 'new_message' }
+      { type: 'new_message', messageId }
     );
     return { error: null };
   } catch (error) {
@@ -297,13 +297,13 @@ export async function sendMessageReminderNotification() {
 /**
  * Send notification for photo liked (Push notification to photo owner)
  */
-export async function sendPhotoLikedNotification(photoOwnerId: string, likerUsername: string) {
+export async function sendPhotoLikedNotification(photoOwnerId: string, likerUsername: string, photoId?: string) {
   try {
     await sendPushNotificationToUser(
       photoOwnerId,
       '❤️ New Like!',
       `@${likerUsername} liked your Rewind`,
-      { type: 'photo_liked' }
+      { type: 'photo_liked', photoId }
     );
     return { error: null };
   } catch (error) {
@@ -318,7 +318,8 @@ export async function sendPhotoLikedNotification(photoOwnerId: string, likerUser
 export async function sendPhotoCommentedNotification(
   photoOwnerId: string,
   commenterUsername: string,
-  commentText: string
+  commentText: string,
+  photoId?: string
 ) {
   try {
     const truncatedComment = commentText.length > 50 
@@ -329,7 +330,7 @@ export async function sendPhotoCommentedNotification(
       photoOwnerId,
       '💬 New Comment!',
       `@${commenterUsername}: ${truncatedComment}`,
-      { type: 'photo_commented' }
+      { type: 'photo_commented', photoId }
     );
     return { error: null };
   } catch (error) {
@@ -341,17 +342,39 @@ export async function sendPhotoCommentedNotification(
 /**
  * Send notification for new follower (Push notification to followed user)
  */
-export async function sendNewFollowerNotification(followedUserId: string, followerUsername: string) {
+export async function sendNewFollowerNotification(followedUserId: string, followerUsername: string, followerId?: string) {
   try {
     await sendPushNotificationToUser(
       followedUserId,
       '👋 New Follower!',
       `@${followerUsername} started following you`,
-      { type: 'new_follower' }
+      { type: 'new_follower', followerId }
     );
     return { error: null };
   } catch (error) {
     console.error('Error sending new follower notification:', error);
+    return { error };
+  }
+}
+
+/**
+ * Send notification when a friend posts (Push notification to followers)
+ */
+export async function sendFriendPostedNotification(
+  followerId: string,
+  posterUsername: string,
+  photoId: string
+) {
+  try {
+    await sendPushNotificationToUser(
+      followerId,
+      '📸 Friend Posted!',
+      `@${posterUsername} just posted a new Rewind`,
+      { type: 'friend_posted', photoId }
+    );
+    return { error: null };
+  } catch (error) {
+    console.error('Error sending friend posted notification:', error);
     return { error };
   }
 }

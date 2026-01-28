@@ -17,7 +17,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import PhotoCard from '../components/PhotoCard';
 import HandwrittenText from '../components/HandwrittenText';
 import PolaroidFrame from '../components/PolaroidFrame';
@@ -71,6 +71,15 @@ export default function FeedScreen() {
     }
   }, [currentUserId]);
 
+  // Reload feed when screen comes into focus (syncs comments/likes from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (currentUserId) {
+        loadFeed();
+      }
+    }, [currentUserId])
+  );
+
   const loadCurrentUser = async () => {
     const { user } = await getCurrentUser();
     if (user) {
@@ -102,7 +111,11 @@ export default function FeedScreen() {
                 getComments(photo.id),
               ]);
               likes[photo.id] = liked;
-              comments[photo.id] = photoComments || [];
+              // Ensure unique comments by ID (prevents duplicates)
+              const uniqueComments = Array.from(
+                new Map((photoComments || []).map(c => [c.id, c])).values()
+              );
+              comments[photo.id] = uniqueComments;
             })
           );
           
@@ -155,11 +168,15 @@ export default function FeedScreen() {
       // Reload comments for this photo
       const { comments: fetchedComments } = await getComments(photoId);
       if (fetchedComments) {
-        setPhotoComments(prev => ({ ...prev, [photoId]: fetchedComments }));
+        // Ensure unique comments by ID (prevents duplicates)
+        const uniqueComments = Array.from(
+          new Map(fetchedComments.map(c => [c.id, c])).values()
+        );
+        setPhotoComments(prev => ({ ...prev, [photoId]: uniqueComments }));
         
         // Update photo comments count
         setPhotos(prev => prev.map(p => 
-          p.id === photoId ? { ...p, comments_count: fetchedComments.length } : p
+          p.id === photoId ? { ...p, comments_count: uniqueComments.length } : p
         ));
       }
     }
@@ -196,7 +213,16 @@ export default function FeedScreen() {
       // Reload comments
       const { comments: fetchedComments } = await getComments(selectedPhoto.id);
       if (fetchedComments) {
-        setPhotoComments(prev => ({ ...prev, [selectedPhoto.id]: fetchedComments }));
+        // Ensure unique comments by ID (prevents duplicates)
+        const uniqueComments = Array.from(
+          new Map(fetchedComments.map(c => [c.id, c])).values()
+        );
+        setPhotoComments(prev => ({ ...prev, [selectedPhoto.id]: uniqueComments }));
+        
+        // Update photo comments count
+        setPhotos(prev => prev.map(p => 
+          p.id === selectedPhoto.id ? { ...p, comments_count: uniqueComments.length } : p
+        ));
       }
       setCommentText('');
       setReplyingTo(null);
@@ -211,11 +237,15 @@ export default function FeedScreen() {
       // Reload comments
       const { comments: fetchedComments } = await getComments(photoId);
       if (fetchedComments) {
-        setPhotoComments(prev => ({ ...prev, [photoId]: fetchedComments }));
+        // Ensure unique comments by ID (prevents duplicates)
+        const uniqueComments = Array.from(
+          new Map(fetchedComments.map(c => [c.id, c])).values()
+        );
+        setPhotoComments(prev => ({ ...prev, [photoId]: uniqueComments }));
         
         // Update photo comments count
         setPhotos(prev => prev.map(p => 
-          p.id === photoId ? { ...p, comments_count: fetchedComments.length } : p
+          p.id === photoId ? { ...p, comments_count: uniqueComments.length } : p
         ));
       }
     }

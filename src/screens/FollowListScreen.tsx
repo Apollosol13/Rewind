@@ -12,7 +12,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFollowers, getFollowing, followUser, unfollowUser, isFollowing } from '../services/follows';
 import { getCurrentUser } from '../services/auth';
-import { User } from '../config/supabase';
+import { markFollowersAsViewed } from '../services/followerBadge';
+import { supabase, User } from '../config/supabase';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import HandwrittenText from '../components/HandwrittenText';
 
@@ -36,7 +37,7 @@ export default function FollowListScreen() {
     if (userId) {
       loadData();
     }
-  }, [userId, activeTab]);
+  }, [userId, activeTab, currentUserId]);
 
   const loadCurrentUser = async () => {
     const { user } = await getCurrentUser();
@@ -47,36 +48,73 @@ export default function FollowListScreen() {
 
   const loadData = async () => {
     setLoading(true);
+    // Clear old follow status to prevent showing stale data
+    setFollowStatus({});
     
-    if (activeTab === 'followers') {
-      const { followers: data } = await getFollowers(userId);
-      setFollowers(data);
-      
-      // Check follow status for each follower
-      if (currentUserId && data.length > 0) {
-        const statuses: Record<string, boolean> = {};
-        for (const user of data) {
-          const { following } = await isFollowing(currentUserId, user.id);
-          statuses[user.id] = following;
+    try {
+      if (activeTab === 'followers') {
+        const { followers: data } = await getFollowers(userId);
+        // Extract the nested user objects
+        const followerUsers = data.map((item: any) => item.follower).filter(Boolean);
+        
+        // Mark followers as viewed when viewing own followers
+        if (currentUserId && userId === currentUserId) {
+          await markFollowersAsViewed(currentUserId);
         }
+        
+        // Batch check follow status for all followers in ONE query
+        const statuses: Record<string, boolean> = {};
+        if (currentUserId && followerUsers.length > 0) {
+          const userIds = followerUsers.map(u => u.id);
+          const { data: followData } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', currentUserId)
+            .in('following_id', userIds);
+          
+          // Create a set of IDs we're following
+          const followingIds = new Set(followData?.map(f => f.following_id) || []);
+          
+          // Set status for all users at once
+          followerUsers.forEach(user => {
+            statuses[user.id] = followingIds.has(user.id);
+          });
+        }
+        
+        // Set all state at once to prevent UI flashing
+        setFollowers(followerUsers);
+        setFollowStatus(statuses);
+      } else {
+        const { following: data } = await getFollowing(userId);
+        // Extract the nested user objects
+        const followingUsers = data.map((item: any) => item.following).filter(Boolean);
+        
+        // Batch check follow status for all following in ONE query
+        const statuses: Record<string, boolean> = {};
+        if (currentUserId && followingUsers.length > 0) {
+          const userIds = followingUsers.map(u => u.id);
+          const { data: followData } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', currentUserId)
+            .in('following_id', userIds);
+          
+          // Create a set of IDs we're following
+          const followingIds = new Set(followData?.map(f => f.following_id) || []);
+          
+          // Set status for all users at once
+          followingUsers.forEach(user => {
+            statuses[user.id] = followingIds.has(user.id);
+          });
+        }
+        
+        // Set all state at once to prevent UI flashing
+        setFollowing(followingUsers);
         setFollowStatus(statuses);
       }
-    } else {
-      const { following: data } = await getFollowing(userId);
-      setFollowing(data);
-      
-      // Check follow status for each following
-      if (currentUserId && data.length > 0) {
-        const statuses: Record<string, boolean> = {};
-        for (const user of data) {
-          const { following } = await isFollowing(currentUserId, user.id);
-          statuses[user.id] = following;
-        }
-        setFollowStatus(statuses);
-      }
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleFollowToggle = async (targetUserId: string) => {
@@ -98,6 +136,7 @@ export default function FollowListScreen() {
   const renderUser = ({ item }: { item: User }) => {
     const isCurrentUser = item.id === currentUserId;
     const isFollowing = followStatus[item.id];
+    const hasStatusLoaded = item.id in followStatus;
 
     return (
       <TouchableOpacity
@@ -119,7 +158,7 @@ export default function FollowListScreen() {
           )}
         </View>
 
-        {!isCurrentUser && (
+        {!isCurrentUser && hasStatusLoaded && (
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();

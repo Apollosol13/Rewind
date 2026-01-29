@@ -782,18 +782,6 @@ export default function FeedScreen() {
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.findContactsButton}
-            onPress={handleFindContacts}
-            disabled={contactsLoading}
-          >
-            <IconSymbol name="person.2.fill" size={20} color="#EF4249" />
-            <Text style={styles.findContactsText}>
-              {contactsLoading ? 'Searching Contacts...' : 'Find Contacts'}
-            </Text>
-            <IconSymbol name="chevron.right" size={20} color="#EF4249" />
-          </TouchableOpacity>
-
           <ScrollView style={styles.searchScrollView}>
             {searchLoading ? (
               <View style={styles.searchLoadingContainer}>

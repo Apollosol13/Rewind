@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rewindapp.ios",
-      "buildNumber": "27",
+      "buildNumber": "28",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "UIBackgroundModes": [

@@ -28,17 +28,19 @@ export async function uploadPhotoToBackend(
     // Create form data
     const formData = new FormData();
     
-    // Add photo file
+    // Add photo file - React Native format
     const fileInfo = await FileSystem.getInfoAsync(imageUri);
     if (!fileInfo.exists) {
       throw new Error('Photo file not found');
     }
 
-    // Create file blob for upload
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
+    // React Native requires this specific format for file uploads
+    formData.append('photo', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'photo.jpg',
+    } as any);
     
-    formData.append('photo', blob as any, 'photo.jpg');
     formData.append('caption', caption || '');
     formData.append('photoStyle', photoStyle);
     formData.append('promptTime', new Date().toISOString());

@@ -2,7 +2,7 @@
   "expo": {
     "name": "REWND",
     "slug": "REWND",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rewind",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rewindapp.ios",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "UIBackgroundModes": [

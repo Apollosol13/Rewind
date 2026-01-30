@@ -94,13 +94,24 @@ export async function processPhotoForUpload(imageBuffer, photoStyle = 'polaroid'
 function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
-      // VHS camcorder effect: desaturate slightly, add noise
+      // VHS camcorder effect: oversaturated with warm magenta shift
       return processor
         .modulate({
-          saturation: 0.8,
-          brightness: 1.05,
+          saturation: 1.3,
+          brightness: 1.08,
+          hue: 5,
         })
-        .tint({ r: 255, g: 250, b: 240 }); // Warm vintage tint
+        .tint({ r: 255, g: 245, b: 235 }); // Warm vintage tint
+
+    case 'film':
+      // B&W film effect: full grayscale conversion
+      return processor
+        .grayscale()
+        .modulate({
+          brightness: 1.03,
+          contrast: 1.08,
+        })
+        .linear(1.05, -(128 * 1.05) + 128); // Increase contrast for film look
 
     case 'sticky-note':
       // Sticky note effect: yellow tint, soft

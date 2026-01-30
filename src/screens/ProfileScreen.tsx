@@ -1895,10 +1895,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuIcon: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#333',
-    lineHeight: 24,
+    lineHeight: 22,
+    backgroundColor: '#FFF9C4', // Yellow sticky note
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: '#E8D68A',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+    overflow: 'visible',
   },
   // Settings Menu (Android)
   menuOverlay: {

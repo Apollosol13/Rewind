@@ -31,6 +31,7 @@ import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
 import { scheduleSmartDailyNotification } from '../services/notifications';
+import { captureRef } from 'react-native-view-shot';
 import * as Haptics from 'expo-haptics';
 
 // Screen size helpers for responsive layout
@@ -52,6 +53,7 @@ export default function CameraScreen() {
   const [timeUntilNext, setTimeUntilNext] = useState({ hours: 0, minutes: 0 });
   const [checkingStatus, setCheckingStatus] = useState(true);
   const cameraRef = useRef<CameraView>(null);
+  const previewRef = useRef<View>(null); // Ref for capturing styled preview
   const router = useRouter();
 
   // Request permissions on mount
@@ -228,11 +230,30 @@ export default function CameraScreen() {
 
         console.log('✅ Caption updated successfully!');
       } else {
-        // For other filters, upload normally
+        // For camcorder filter, capture the styled preview (with CSS overlays)
+        let imageToUpload = capturedImage;
+        
+        if (photoStyle === 'camcorder' && previewRef.current) {
+          console.log('🎬 Capturing styled preview for camcorder filter...');
+          try {
+            // Capture the preview view with all CSS overlays applied
+            const styledUri = await captureRef(previewRef.current, {
+              format: 'jpg',
+              quality: 0.95,
+            });
+            console.log('✅ Styled preview captured:', styledUri);
+            imageToUpload = styledUri;
+          } catch (error) {
+            console.error('❌ Failed to capture styled preview:', error);
+            // Fall back to original image if capture fails
+          }
+        }
+        
+        // Upload to backend
         console.log('📸 Uploading photo via backend...');
         
         const photo = await uploadPhotoToBackend(
-          capturedImage,
+          imageToUpload,
           caption,
           photoStyle
         );
@@ -301,7 +322,7 @@ export default function CameraScreen() {
           </View>
 
           <View style={styles.previewContent}>
-            <View style={styles.previewImageContainer}>
+            <View style={styles.previewImageContainer} ref={previewRef}>
               <PolaroidFrame
                 imageUri={capturedImage}
                 caption={caption}

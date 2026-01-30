@@ -94,17 +94,9 @@ export async function processPhotoForUpload(imageBuffer, photoStyle = 'polaroid'
 function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
-      // 90s Aesthetic - Match preview (subtle warmth, natural colors)
-      // Vibrance +21, Warmth +19, Exposure -15, Highlights -19, Contrast -12,
-      // Black Point -7, Saturation -7, Sharpness +44
-      return processor
-        .modulate({
-          saturation: 1.0,       // Neutral saturation (let tint do the work)
-          brightness: 0.88,      // Exposure -15 (slight darken, not too much)
-        })
-        .linear(0.88, -(128 * 0.88) + 128 + 7)  // Contrast -12, Black Point -7 (lift blacks)
-        .tint({ r: 255, g: 230, b: 200 })       // Warmth +19 (subtle warm glow)
-        .sharpen({ sigma: 1.8 });               // Sharpness +44 (moderate)
+      // Camcorder: Frontend captures pre-styled image with CSS overlays
+      // Backend just passes through with minimal processing
+      return processor; // No additional processing - image already styled!
 
     case 'film':
       // B&W film effect: full grayscale conversion

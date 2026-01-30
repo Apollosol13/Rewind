@@ -162,15 +162,14 @@ export default function CameraScreen() {
 
   const takePicture = async () => {
     // Check if user has already posted today
-    // TEMPORARILY DISABLED FOR TESTING
-    // if (alreadyPosted) {
-    //   Alert.alert(
-    //     '📸 Already Posted Today!',
-    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-    //     [{ text: 'OK', style: 'default' }]
-    //   );
-    //   return;
-    // }
+    if (alreadyPosted) {
+      Alert.alert(
+        '📸 Already Posted Today!',
+        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
 
     if (cameraRef.current) {
       try {

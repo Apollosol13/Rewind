@@ -5,8 +5,9 @@ import { View, ActivityIndicator, StyleSheet, Linking, Alert } from 'react-nativ
 import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { supabase } from '../src/config/supabase';
-import { verifyEmail } from '../src/services/auth';
+import { verifyEmail, getCurrentUser } from '../src/services/auth';
 import { handleNotificationNavigation } from '../src/services/notificationNavigation';
+import { requestNotificationPermissions, registerPushToken } from '../src/services/notifications';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -25,8 +26,31 @@ export default function RootLayout() {
     checkAuth();
 
     // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const wasAuthenticated = isAuthenticated;
       setIsAuthenticated(!!session);
+      
+      // Request notification permissions when user logs in
+      if (session && !wasAuthenticated) {
+        console.log('🔔 User logged in - requesting notification permissions...');
+        try {
+          const { granted } = await requestNotificationPermissions();
+          
+          if (granted) {
+            console.log('✅ Notification permissions granted');
+            // Register push token
+            const { user } = await getCurrentUser();
+            if (user) {
+              await registerPushToken(user.id);
+              console.log('✅ Push token registered for user:', user.id);
+            }
+          } else {
+            console.log('⚠️ Notification permissions denied');
+          }
+        } catch (error) {
+          console.error('❌ Error requesting notification permissions:', error);
+        }
+      }
     });
 
     // Handle deep links for email verification

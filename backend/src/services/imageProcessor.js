@@ -95,17 +95,15 @@ function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
       // 90's Aesthetic VHS: Dramatic Warm preset
-      // Saturation: -7, Vibrance: +21, Warmth: +19, Exposure: -15, Highlights: -19
-      // Contrast: -12, Sharpness: +44, Grain: +5, Fade: +4.7
-      // Note: Vibrance +21 overrides Saturation -7, resulting in net boost
+      // TEST: Using extreme saturation to verify Sharp.js is actually applying it
       return processor
         .modulate({
-          saturation: 1.15,      // Vibrance +21 effect (boost vivid colors)
-          brightness: 0.90,      // -15 exposure (moderate darken, not too much)
+          saturation: 1.8,       // EXTREME saturation for testing
+          brightness: 0.85,      // Darker exposure
         })
-        .linear(0.88, -(128 * 0.88) + 128)  // -12 contrast (softer)
-        .tint({ r: 255, g: 200, b: 150 })    // +19 warmth (stronger warm orange)
-        .sharpen({ sigma: 1.5 });            // +44 sharpness
+        .linear(0.85, -(128 * 0.85) + 128)  // Lower contrast
+        .tint({ r: 255, g: 180, b: 130 })    // Strong warm orange
+        .sharpen({ sigma: 2.0 });            // More sharpness
 
     case 'film':
       // B&W film effect: full grayscale conversion

@@ -94,17 +94,17 @@ export async function processPhotoForUpload(imageBuffer, photoStyle = 'polaroid'
 function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
-      // 90s Aesthetic Camera Roll "Dramatic Warm" preset
+      // 90s Aesthetic - Match preview (subtle warmth, natural colors)
       // Vibrance +21, Warmth +19, Exposure -15, Highlights -19, Contrast -12,
       // Black Point -7, Saturation -7, Sharpness +44
       return processor
         .modulate({
-          saturation: 1.14,      // Vibrance +21 effect (boost muted colors)
-          brightness: 0.85,      // Exposure -15 (darken)
+          saturation: 1.0,       // Neutral saturation (let tint do the work)
+          brightness: 0.88,      // Exposure -15 (slight darken, not too much)
         })
-        .linear(0.88, -(128 * 0.88) + 128 + 9)  // Contrast -12, Black Point -7 (lift blacks)
-        .tint({ r: 255, g: 200, b: 150 })       // Warmth +19 (strong warm orange)
-        .sharpen({ sigma: 2.2 });               // Sharpness +44 (significant)
+        .linear(0.88, -(128 * 0.88) + 128 + 7)  // Contrast -12, Black Point -7 (lift blacks)
+        .tint({ r: 255, g: 230, b: 200 })       // Warmth +19 (subtle warm glow)
+        .sharpen({ sigma: 1.8 });               // Sharpness +44 (moderate)
 
     case 'film':
       // B&W film effect: full grayscale conversion

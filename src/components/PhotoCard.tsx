@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import PolaroidFrame from './PolaroidFrame';
 import HandwrittenText from './HandwrittenText';
@@ -37,11 +37,8 @@ export default function PhotoCard({
   onReportComment
 }: PhotoCardProps) {
   const router = useRouter();
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [commentText, setCommentText] = useState('');
   const [likesCount, setLikesCount] = useState(photo.likes_count || 0);
   const [isLiked, setIsLiked] = useState(hasLiked);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsLiked(hasLiked);
@@ -60,18 +57,6 @@ export default function PhotoCard({
       setIsLiked(true);
       setLikesCount(prev => prev + 1);
       onLike();
-    }
-  };
-
-  const handleSubmitComment = async () => {
-    if (commentText.trim() && !isSubmitting) {
-      console.log('📝 PhotoCard: Submitting comment');
-      setIsSubmitting(true);
-      await onAddComment(commentText.trim());
-      setCommentText('');
-      setShowCommentInput(false);
-      // Delay to prevent rapid re-submission
-      setTimeout(() => setIsSubmitting(false), 1000);
     }
   };
 
@@ -140,7 +125,7 @@ export default function PhotoCard({
         
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => setShowCommentInput(!showCommentInput)}
+          onPress={onViewAllComments}
         >
           <IconSymbol name="bubble.left" size={28} color="#333" />
         </TouchableOpacity>
@@ -214,36 +199,6 @@ export default function PhotoCard({
         </TouchableOpacity>
       )}
 
-      {/* Comment Input */}
-      {showCommentInput && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-          <View style={styles.commentInputContainer}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Add a comment..."
-              value={commentText}
-              onChangeText={setCommentText}
-              multiline
-              maxLength={500}
-              autoFocus
-              editable={!isSubmitting}
-            />
-            <TouchableOpacity 
-              onPress={handleSubmitComment}
-              disabled={!commentText.trim() || isSubmitting}
-            >
-              <IconSymbol 
-                name="paperplane.fill" 
-                size={24} 
-                color={commentText.trim() && !isSubmitting ? "#EF4249" : "#CCC"} 
-              />
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      )}
     </View>
   );
 }

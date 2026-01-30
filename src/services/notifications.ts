@@ -378,3 +378,77 @@ export async function sendFriendPostedNotification(
     return { error };
   }
 }
+
+/**
+ * Schedule exact 24-hour notification (BeReal style timer system)
+ * Timer starts when notification is sent, user has 3:30 to post
+ */
+export async function scheduleExact24HourNotification(userId: string, postTime: Date) {
+  try {
+    // Cancel any existing notifications
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    // Calculate exact 24 hours from post time
+    const tomorrow = new Date(postTime);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const hour = tomorrow.getHours();
+    const minute = tomorrow.getMinutes();
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚡️ Time to Rewind!',
+        body: 'You have 3 minutes and 30 seconds! ⏱️',
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        data: { 
+          type: 'daily_rewind',
+          deadline: new Date(tomorrow.getTime() + 210000).toISOString(), // +3:30 (210 seconds)
+          sentAt: tomorrow.toISOString(),
+        },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        repeats: true,
+      },
+    });
+
+    // Save notification time to database
+    await supabase
+      .from('users')
+      .update({ 
+        last_post_time: postTime.toISOString(),
+        notification_time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`,
+      })
+      .eq('id', userId);
+
+    console.log(`⏰ 24-hour notification scheduled for ${hour}:${String(minute).padStart(2, '0')} daily`);
+    return { notificationId, hour, minute, error: null };
+  } catch (error) {
+    console.error('Error scheduling 24-hour notification:', error);
+    return { notificationId: null, hour: null, minute: null, error };
+  }
+}
+
+/**
+ * Calculate if current time is within deadline (for timer display)
+ */
+export function getTimerInfo(notificationData: any): { timeRemaining: number | null; isLate: boolean } {
+  if (!notificationData?.deadline) {
+    return { timeRemaining: null, isLate: false };
+  }
+
+  const deadline = new Date(notificationData.deadline);
+  const now = new Date();
+  const diff = deadline.getTime() - now.getTime();
+
+  if (diff > 0) {
+    // Still within timer
+    return { timeRemaining: Math.floor(diff / 1000), isLate: false };
+  } else {
+    // Past deadline
+    return { timeRemaining: 0, isLate: true };
+  }
+}

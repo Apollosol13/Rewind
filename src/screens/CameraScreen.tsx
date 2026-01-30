@@ -30,9 +30,10 @@ import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
-import { scheduleSmartDailyNotification } from '../services/notifications';
+import { scheduleSmartDailyNotification, scheduleExact24HourNotification, getTimerInfo } from '../services/notifications';
 import { captureRef } from 'react-native-view-shot';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Screen size helpers for responsive layout
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -52,6 +53,8 @@ export default function CameraScreen() {
   const [alreadyPosted, setAlreadyPosted] = useState(false);
   const [timeUntilNext, setTimeUntilNext] = useState({ hours: 0, minutes: 0 });
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // Timer countdown in seconds
+  const [isLate, setIsLate] = useState(false); // Whether posting outside timer
   const cameraRef = useRef<CameraView>(null);
   const previewRef = useRef<View>(null); // Ref for capturing styled preview
   const router = useRouter();
@@ -62,6 +65,49 @@ export default function CameraScreen() {
       requestPermission();
     }
   }, []);
+
+  // Check timer status on mount
+  useEffect(() => {
+    checkTimerStatus();
+  }, []);
+
+  // Update timer countdown every second
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev === null || prev <= 0) {
+          setIsLate(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeRemaining]);
+
+  const checkTimerStatus = async () => {
+    try {
+      // Check if there's an active timer from notification
+      const notifDataString = await AsyncStorage.getItem('lastNotificationData');
+      if (notifDataString) {
+        const notifData = JSON.parse(notifDataString);
+        const timerInfo = getTimerInfo(notifData);
+        
+        setTimeRemaining(timerInfo.timeRemaining);
+        setIsLate(timerInfo.isLate);
+        
+        console.log('⏰ Timer status:', timerInfo);
+      } else {
+        // No active timer
+        console.log('📍 No active timer - first post will start 24h cycle');
+      }
+    } catch (error) {
+      console.error('Error checking timer status:', error);
+    }
+  };
 
   // Check daily post status on mount
   useEffect(() => {
@@ -270,14 +316,35 @@ export default function CameraScreen() {
           return;
         }
 
-        // Record daily post and schedule personalized notification
+        // Calculate if post was on-time or late
+        const postTime = new Date();
+        const postedOnTime = !isLate;
+        const minutesLate = isLate ? Math.floor((postTime.getTime() - (timeRemaining || 0)) / 60000) : 0;
+
+        // Update photo with timer metadata
+        await supabase
+          .from('photos')
+          .update({ 
+            posted_on_time: postedOnTime,
+            minutes_late: minutesLate 
+          })
+          .eq('id', photo.id);
+
+        console.log(`⏰ Post tracked: ${postedOnTime ? 'On time' : `Late by ${minutesLate} mins`}`);
+
+        // Record daily post and schedule exact 24-hour notification
         if (photo) {
           await recordDailyPost(user.id, photo.id);
           setAlreadyPosted(true);
           
-          const currentHour = new Date().getHours();
-          await savePreferredPostHour(user.id, currentHour);
-          await scheduleSmartDailyNotification(currentHour);
+          // Schedule exact 24-hour notification (BeReal style)
+          await scheduleExact24HourNotification(user.id, postTime);
+          console.log('⏰ Next notification scheduled for exactly 24 hours from now');
+          
+          // Clear timer data
+          await AsyncStorage.removeItem('lastNotificationData');
+          setTimeRemaining(null);
+          setIsLate(false);
         }
       }
 
@@ -382,6 +449,13 @@ export default function CameraScreen() {
     );
   }
 
+  // Format timer display (MM:SS)
+  const formatTimer = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
   // Polaroid Camera UI
   return (
     <View style={styles.container}>
@@ -397,9 +471,19 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>✕</Text>
           </TouchableOpacity>
 
-          {/* REWND Branding */}
+          {/* REWND Branding or Timer */}
           <View style={styles.brandingTop}>
-            <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
+            {timeRemaining !== null && timeRemaining > 0 ? (
+              <View style={styles.timerContainer}>
+                <Text style={styles.timerText}>⏱️ {formatTimer(timeRemaining)}</Text>
+              </View>
+            ) : isLate ? (
+              <View style={styles.lateContainer}>
+                <Text style={styles.lateText}>⚠️ LATE</Text>
+              </View>
+            ) : (
+              <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
+            )}
           </View>
 
           {/* Flash Toggle */}
@@ -538,6 +622,28 @@ const styles = StyleSheet.create({
   brandText: {
     color: '#333',
     paddingRight: 8,
+  },
+  timerContainer: {
+    backgroundColor: '#EF4249',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  timerText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  lateContainer: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  lateText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   flashToggle: {
     padding: 8,

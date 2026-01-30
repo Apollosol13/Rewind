@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, Linking, Alert } from 'react-native';
 import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../src/config/supabase';
 import { verifyEmail, getCurrentUser } from '../src/services/auth';
 import { handleNotificationNavigation } from '../src/services/notificationNavigation';
@@ -107,8 +108,14 @@ export default function RootLayout() {
     };
 
     // Listen for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    notificationListener.current = Notifications.addNotificationReceivedListener(async (notification) => {
       console.log('🔔 Notification received:', notification);
+      
+      // Store notification data for timer system
+      if (notification.request.content.data?.type === 'daily_rewind') {
+        await AsyncStorage.setItem('lastNotificationData', JSON.stringify(notification.request.content.data));
+        console.log('⏰ Timer data stored:', notification.request.content.data);
+      }
     });
 
     // Listen for notification taps

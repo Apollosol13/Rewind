@@ -90,6 +90,11 @@ export default function PhotoCard({
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.time}>{getRelativeTime(photo.created_at)}</Text>
+          {!photo.posted_on_time && (
+            <View style={styles.lateBadge}>
+              <Text style={styles.lateBadgeText}>LATE</Text>
+            </View>
+          )}
           {currentUserId !== photo.user_id && onReport && (
             <TouchableOpacity onPress={onReport} style={styles.reportButton}>
               <IconSymbol name="flag" size={18} color="#999" />
@@ -230,6 +235,17 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: '#999',
+  },
+  lateBadge: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  lateBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   reportButton: {
     padding: 4,

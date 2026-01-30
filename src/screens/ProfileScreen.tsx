@@ -1731,7 +1731,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F0',
+    backgroundColor: '#B8956A', // Cork board all the way to top
   },
   photoModalHeader: {
     flexDirection: 'row',

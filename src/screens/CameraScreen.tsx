@@ -236,15 +236,20 @@ export default function CameraScreen() {
         if (photoStyle === 'camcorder' && previewRef.current) {
           console.log('🎬 Capturing styled preview for camcorder filter...');
           try {
+            // Wait for view to fully render before capturing
+            await new Promise(resolve => setTimeout(resolve, 150));
+            
             // Capture the preview view with all CSS overlays applied
             const styledUri = await captureRef(previewRef.current, {
               format: 'jpg',
               quality: 0.95,
+              result: 'tmpfile', // Use temp file for better compatibility
             });
             console.log('✅ Styled preview captured:', styledUri);
             imageToUpload = styledUri;
           } catch (error) {
             console.error('❌ Failed to capture styled preview:', error);
+            console.log('⚠️ Falling back to original image');
             // Fall back to original image if capture fails
           }
         }
@@ -322,7 +327,7 @@ export default function CameraScreen() {
           </View>
 
           <View style={styles.previewContent}>
-            <View style={styles.previewImageContainer} ref={previewRef}>
+            <View style={styles.previewImageContainer} ref={previewRef} collapsable={false}>
               <PolaroidFrame
                 imageUri={capturedImage}
                 caption={caption}

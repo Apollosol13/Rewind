@@ -355,6 +355,8 @@ export async function unlikePhoto(photoId: string, userId: string) {
  */
 export async function addComment(photoId: string, userId: string, text: string) {
   try {
+    console.log('🔵 Service: addComment called', { photoId, text: text.substring(0, 20) });
+    
     const { data, error } = await supabase
       .from('comments')
       .insert([
@@ -369,6 +371,8 @@ export async function addComment(photoId: string, userId: string, text: string) 
       .single();
 
     if (error) throw error;
+
+    console.log('✅ Service: Comment created with ID:', data?.id?.substring(0, 8) + '...');
 
     // Send notification to photo owner if they have it enabled
     if (data) {
@@ -418,6 +422,8 @@ export async function addComment(photoId: string, userId: string, text: string) 
  */
 export async function getComments(photoId: string) {
   try {
+    console.log('🔍 Service: getComments called for photo:', photoId.substring(0, 8) + '...');
+    
     const { data, error } = await supabase
       .from('comments')
       .select(`
@@ -433,6 +439,12 @@ export async function getComments(photoId: string) {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
+    
+    console.log('📊 Service: getComments returned', data?.length, 'comments');
+    if (data && data.length > 0) {
+      console.log('📋 Service: Comment IDs from DB:', data.map(c => c.id.substring(0, 8) + '...'));
+    }
+    
     return { comments: data, error: null };
   } catch (error) {
     console.error('Error getting comments:', error);

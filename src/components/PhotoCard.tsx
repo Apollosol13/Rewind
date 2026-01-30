@@ -41,6 +41,7 @@ export default function PhotoCard({
   const [commentText, setCommentText] = useState('');
   const [likesCount, setLikesCount] = useState(photo.likes_count || 0);
   const [isLiked, setIsLiked] = useState(hasLiked);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsLiked(hasLiked);
@@ -62,11 +63,15 @@ export default function PhotoCard({
     }
   };
 
-  const handleSubmitComment = () => {
-    if (commentText.trim()) {
-      onAddComment(commentText.trim());
+  const handleSubmitComment = async () => {
+    if (commentText.trim() && !isSubmitting) {
+      console.log('📝 PhotoCard: Submitting comment');
+      setIsSubmitting(true);
+      await onAddComment(commentText.trim());
       setCommentText('');
       setShowCommentInput(false);
+      // Delay to prevent rapid re-submission
+      setTimeout(() => setIsSubmitting(false), 1000);
     }
   };
 
@@ -220,15 +225,16 @@ export default function PhotoCard({
             multiline
             maxLength={500}
             autoFocus
+            editable={!isSubmitting}
           />
           <TouchableOpacity 
             onPress={handleSubmitComment}
-            disabled={!commentText.trim()}
+            disabled={!commentText.trim() || isSubmitting}
           >
             <IconSymbol 
               name="paperplane.fill" 
               size={24} 
-              color={commentText.trim() ? "#EF4249" : "#CCC"} 
+              color={commentText.trim() && !isSubmitting ? "#EF4249" : "#CCC"} 
             />
           </TouchableOpacity>
         </View>

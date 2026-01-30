@@ -114,14 +114,15 @@ export default function CameraScreen() {
 
   const takePicture = async () => {
     // Check if user has already posted today
-    if (alreadyPosted) {
-      Alert.alert(
-        '📸 Already Posted Today!',
-        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-        [{ text: 'OK', style: 'default' }]
-      );
-      return;
-    }
+    // TEMPORARILY DISABLED FOR TESTING
+    // if (alreadyPosted) {
+    //   Alert.alert(
+    //     '📸 Already Posted Today!',
+    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+    //     [{ text: 'OK', style: 'default' }]
+    //   );
+    //   return;
+    // }
 
     if (cameraRef.current) {
       try {
@@ -172,10 +173,29 @@ export default function CameraScreen() {
     }
   };
 
-  const retakePicture = () => {
+  const retakePicture = async () => {
+    // If B&W photo was already uploaded, delete it from database
+    if (uploadedPhotoId) {
+      console.log('🗑️ Canceling upload - deleting B&W photo from database:', uploadedPhotoId);
+      try {
+        const { error } = await supabase
+          .from('photos')
+          .delete()
+          .eq('id', uploadedPhotoId);
+        
+        if (error) {
+          console.error('❌ Error deleting photo:', error);
+        } else {
+          console.log('✅ B&W photo deleted successfully');
+        }
+      } catch (error) {
+        console.error('❌ Error deleting photo:', error);
+      }
+    }
+    
     setCapturedImage(null);
     setCaption('');
-    setUploadedPhotoId(null); // Reset uploaded photo ID
+    setUploadedPhotoId(null);
   };
 
   const handleUpload = async () => {
@@ -271,7 +291,7 @@ export default function CameraScreen() {
             <>
               <TouchableOpacity 
                 style={styles.previewBackButton}
-                onPress={() => router.back()}
+                onPress={retakePicture}
               >
                 <Text style={styles.backIcon}>✕</Text>
               </TouchableOpacity>

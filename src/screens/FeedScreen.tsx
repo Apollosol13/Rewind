@@ -163,15 +163,21 @@ export default function FeedScreen() {
   const handlePhotoComment = async (photoId: string, text: string) => {
     if (!currentUserId) return;
     
+    console.log('💬 FeedScreen: Adding comment to photo', photoId);
     const { error } = await addComment(photoId, currentUserId, text);
     if (!error) {
       // Reload comments for this photo
       const { comments: fetchedComments } = await getComments(photoId);
       if (fetchedComments) {
+        console.log('📦 Fetched comments count:', fetchedComments.length);
+        console.log('📋 Comment IDs:', fetchedComments.map(c => `${c.id.substring(0, 8)}...`));
+        
         // Ensure unique comments by ID (prevents duplicates)
         const uniqueComments = Array.from(
           new Map(fetchedComments.map(c => [c.id, c])).values()
         );
+        console.log('✅ Unique comments count:', uniqueComments.length);
+        
         setPhotoComments(prev => ({ ...prev, [photoId]: uniqueComments }));
         
         // Update photo comments count
@@ -197,6 +203,7 @@ export default function FeedScreen() {
   const handleModalAddComment = async () => {
     if (!currentUserId || !selectedPhoto || !commentText.trim()) return;
     
+    console.log('💬 FeedScreen Modal: Adding comment');
     let result;
     if (replyingTo) {
       result = await addCommentReply(
@@ -213,10 +220,15 @@ export default function FeedScreen() {
       // Reload comments
       const { comments: fetchedComments } = await getComments(selectedPhoto.id);
       if (fetchedComments) {
+        console.log('📦 Modal: Fetched comments count:', fetchedComments.length);
+        console.log('📋 Modal: Comment IDs:', fetchedComments.map(c => `${c.id.substring(0, 8)}...`));
+        
         // Ensure unique comments by ID (prevents duplicates)
         const uniqueComments = Array.from(
           new Map(fetchedComments.map(c => [c.id, c])).values()
         );
+        console.log('✅ Modal: Unique comments count:', uniqueComments.length);
+        
         setPhotoComments(prev => ({ ...prev, [selectedPhoto.id]: uniqueComments }));
         
         // Update photo comments count

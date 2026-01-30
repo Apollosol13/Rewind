@@ -94,14 +94,18 @@ export async function processPhotoForUpload(imageBuffer, photoStyle = 'polaroid'
 function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
-      // VHS camcorder effect: oversaturated with warm magenta shift
+      // 90's Aesthetic VHS: Dramatic Warm preset
+      // Saturation: -7, Vibrance: +21, Warmth: +19, Exposure: -15, Highlights: -19
+      // Contrast: -12, Sharpness: +44, Grain: +5, Fade: +4.7
+      // Note: Vibrance +21 overrides Saturation -7, resulting in net boost
       return processor
         .modulate({
-          saturation: 1.3,
-          brightness: 1.08,
-          hue: 5,
+          saturation: 1.15,      // Vibrance +21 effect (boost vivid colors)
+          brightness: 0.90,      // -15 exposure (moderate darken, not too much)
         })
-        .tint({ r: 255, g: 245, b: 235 }); // Warm vintage tint
+        .linear(0.88, -(128 * 0.88) + 128)  // -12 contrast (softer)
+        .tint({ r: 255, g: 200, b: 150 })    // +19 warmth (stronger warm orange)
+        .sharpen({ sigma: 1.5 });            // +44 sharpness
 
     case 'film':
       // B&W film effect: full grayscale conversion

@@ -64,16 +64,14 @@ export default function FilterOverlay({ filterId }: FilterOverlayProps) {
     case 'camcorder':
       return (
         <View style={styles.overlay} pointerEvents="none">
-          {/* 90's Aesthetic: Exposure -15 (darken) */}
+          {/* 90s Aesthetic: Exposure -15 (darken) */}
           <View style={[StyleSheet.absoluteFill, styles.camcorderDarken]} />
-          {/* Warmth +19 (warm orange glow) */}
-          <View style={[StyleSheet.absoluteFill, styles.camcorderWarmOrange]} />
-          {/* Saturation -7 (slight desaturation) */}
-          <View style={[StyleSheet.absoluteFill, styles.camcorderDesaturate]} />
-          {/* Fade +4.7 (lifted blacks, vintage look) */}
+          {/* Warmth +19 (strong warm orange glow) */}
+          <View style={[StyleSheet.absoluteFill, styles.camcorderWarmth]} />
+          {/* Black Point -7 (lift blacks, vintage fade) */}
           <View style={[StyleSheet.absoluteFill, styles.camcorderFade]} />
-          {/* Highlights -19 (reduce bright areas) */}
-          <View style={[StyleSheet.absoluteFill, styles.camcorderReduceHighlights]} />
+          {/* Vibrance +21 (boost muted colors - simulated with subtle color overlay) */}
+          <View style={[StyleSheet.absoluteFill, styles.camcorderVibrance]} />
         </View>
       );
 
@@ -129,17 +127,16 @@ const styles = StyleSheet.create({
   camcorderDarken: {
     backgroundColor: 'rgba(0, 0, 0, 0.15)', // Exposure -15 (darken image)
   },
-  camcorderWarmOrange: {
-    backgroundColor: 'rgba(255, 220, 180, 0.22)', // Warmth +19 (strong warm orange glow)
-  },
-  camcorderDesaturate: {
-    backgroundColor: 'rgba(128, 128, 128, 0.08)', // Saturation -7 (slight gray wash)
+  camcorderWarmth: {
+    backgroundColor: 'rgba(255, 200, 150, 0.28)', // Warmth +19 (dramatic warm orange)
+    mixBlendMode: 'screen', // Blend for warmth effect
   },
   camcorderFade: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Fade +4.7 (lifted blacks, vintage)
+    backgroundColor: 'rgba(255, 255, 255, 0.09)', // Black Point -7 (lift blacks, vintage fade)
   },
-  camcorderReduceHighlights: {
-    backgroundColor: 'rgba(220, 180, 140, 0.10)', // Highlights -19 (reduce bright spots with warm tone)
+  camcorderVibrance: {
+    backgroundColor: 'rgba(255, 180, 100, 0.12)', // Vibrance +21 (boost warm tones)
+    mixBlendMode: 'overlay', // Blend to boost colors
   },
 
   // Shared effects removed - filmGrain placeholder caused visible squares

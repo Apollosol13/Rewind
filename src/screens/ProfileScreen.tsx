@@ -1793,6 +1793,7 @@ const styles = StyleSheet.create({
     gap: 30,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF', // White background for actions
   },
   actionButton: {
     flexDirection: 'row',
@@ -1806,6 +1807,7 @@ const styles = StyleSheet.create({
   },
   commentsSection: {
     padding: 20,
+    backgroundColor: '#FFF', // White background for comments
   },
   commentsTitle: {
     fontSize: 18,

@@ -94,16 +94,16 @@ export async function processPhotoForUpload(imageBuffer, photoStyle = 'polaroid'
 function applyPhotoStyle(processor, style) {
   switch (style) {
     case 'camcorder':
-      // 90's Aesthetic VHS: Dramatic Warm preset
-      // TEST: Using extreme saturation to verify Sharp.js is actually applying it
+      // VHS Camcorder: Match frontend preview aesthetic
+      // Subtle desaturation + warm tint + darkening + lifted blacks
       return processor
         .modulate({
-          saturation: 1.8,       // EXTREME saturation for testing
-          brightness: 0.85,      // Darker exposure
+          saturation: 0.92,      // -8% saturation (subtle desaturation like preview)
+          brightness: 0.85,      // -15% brightness (darken to match preview)
         })
-        .linear(0.85, -(128 * 0.85) + 128)  // Lower contrast
-        .tint({ r: 255, g: 180, b: 130 })    // Strong warm orange
-        .sharpen({ sigma: 2.0 });            // More sharpness
+        .linear(0.92, -(128 * 0.92) + 128)  // Reduce contrast, lift blacks (fade effect)
+        .tint({ r: 255, g: 220, b: 180 })    // Warm orange tint (matches frontend overlay)
+        .sharpen({ sigma: 1.2 });            // Moderate sharpness
 
     case 'film':
       // B&W film effect: full grayscale conversion

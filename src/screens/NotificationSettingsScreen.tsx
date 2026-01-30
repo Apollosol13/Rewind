@@ -150,6 +150,7 @@ export default function NotificationSettingsScreen() {
       notif_photo_liked: true,
       notif_photo_commented: true,
       notif_new_follower: true,
+      notif_friend_posted: true,
     };
 
     const { error } = await updateNotificationPreferences(user.id, allEnabled);
@@ -184,6 +185,7 @@ export default function NotificationSettingsScreen() {
               notif_photo_liked: false,
               notif_photo_commented: false,
               notif_new_follower: false,
+              notif_friend_posted: false,
             };
 
             const { error } = await updateNotificationPreferences(user.id, allDisabled);

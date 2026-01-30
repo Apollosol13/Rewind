@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, TextInput, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import PolaroidFrame from './PolaroidFrame';
 import HandwrittenText from './HandwrittenText';
@@ -216,28 +216,33 @@ export default function PhotoCard({
 
       {/* Comment Input */}
       {showCommentInput && (
-        <View style={styles.commentInputContainer}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Add a comment..."
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={500}
-            autoFocus
-            editable={!isSubmitting}
-          />
-          <TouchableOpacity 
-            onPress={handleSubmitComment}
-            disabled={!commentText.trim() || isSubmitting}
-          >
-            <IconSymbol 
-              name="paperplane.fill" 
-              size={24} 
-              color={commentText.trim() && !isSubmitting ? "#EF4249" : "#CCC"} 
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <View style={styles.commentInputContainer}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Add a comment..."
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={500}
+              autoFocus
+              editable={!isSubmitting}
             />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity 
+              onPress={handleSubmitComment}
+              disabled={!commentText.trim() || isSubmitting}
+            >
+              <IconSymbol 
+                name="paperplane.fill" 
+                size={24} 
+                color={commentText.trim() && !isSubmitting ? "#EF4249" : "#CCC"} 
+              />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       )}
     </View>
   );

@@ -105,14 +105,14 @@ export default function PhotoCard({
 
       {/* Polaroid Photo */}
       <View style={styles.polaroidContainer}>
-        <PolaroidFrame
-          imageUri={photo.image_url}
-          caption={photo.caption}
-          date={photo.created_at}
-          showRainbow={true}
-          width={340}
-          filterId={photo.photo_style as any || 'polaroid'}
-        />
+      <PolaroidFrame
+        imageUri={photo.image_url}
+        caption={photo.caption}
+        date={photo.created_at}
+        showRainbow={true}
+        width={340}
+        filterId={photo.photo_style as any || 'polaroid'}
+      />
       </View>
 
       {/* Action Buttons */}
@@ -168,20 +168,20 @@ export default function PhotoCard({
                 }}
                 activeOpacity={comment.user_id !== currentUserId ? 0.7 : 1}
               >
-                <View style={styles.commentRow}>
-                  <TouchableOpacity onPress={() => comment.users?.id && router.push(`/user/${comment.users.id}`)}>
-                    <Text style={styles.commentUsername}>@{comment.users?.username}</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.commentText}>{comment.text}</Text>
-                </View>
-                {comment.user_id === currentUserId && (
-                  <TouchableOpacity 
-                    onPress={() => handleDeleteComment(comment.id)}
-                    style={styles.deleteButton}
-                  >
-                    <IconSymbol name="trash" size={14} color="#EF4249" />
-                  </TouchableOpacity>
-                )}
+              <View style={styles.commentRow}>
+                <TouchableOpacity onPress={() => comment.users?.id && router.push(`/user/${comment.users.id}`)}>
+                  <Text style={styles.commentUsername}>@{comment.users?.username}</Text>
+                </TouchableOpacity>
+                <Text style={styles.commentText}>{comment.text}</Text>
+              </View>
+              {comment.user_id === currentUserId && (
+                <TouchableOpacity 
+                  onPress={() => handleDeleteComment(comment.id)}
+                  style={styles.deleteButton}
+                >
+                  <IconSymbol name="trash" size={14} color="#EF4249" />
+                </TouchableOpacity>
+              )}
               </TouchableOpacity>
               {/* Reply button below comment */}
               <TouchableOpacity 

@@ -15,6 +15,7 @@ interface PolaroidFrameProps {
   width?: number;
   filterId?: PhotoStyle;
   showWatermark?: boolean;
+  showOverlay?: boolean; // Control whether to render overlays (default false for posted photos)
 }
 
 export default function PolaroidFrame({
@@ -25,6 +26,7 @@ export default function PolaroidFrame({
   width = 320,
   filterId = 'polaroid',
   showWatermark = false,
+  showOverlay = false, // Default to false - overlays already baked into posted photos
 }: PolaroidFrameProps) {
   const imageSize = width - 40; // Account for padding
   const photoDate = typeof date === 'string' ? new Date(date) : date;
@@ -59,7 +61,8 @@ export default function PolaroidFrame({
           <FilterOverlay filterId={filterId} />
           
           {/* Camcorder UI overlay - REC, frame corners, etc. */}
-          {shouldShowFilterOverlay(filterId) && (
+          {/* Only show overlay if showOverlay is true (for camera preview, not posted photos) */}
+          {showOverlay && shouldShowFilterOverlay(filterId) && (
             <CamcorderOverlay timestamp={photoDate} />
           )}
         </View>

@@ -30,7 +30,8 @@ import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
-import { scheduleSmartDailyNotification, scheduleExact24HourNotification, getTimerInfo } from '../services/notifications';
+import { scheduleSmartDailyNotification, scheduleExact24HourNotification, getTimerInfo, sendFriendPostedNotification } from '../services/notifications';
+import { shouldSendNotification } from '../services/notificationPreferences';
 import { captureRef } from 'react-native-view-shot';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -181,9 +182,17 @@ export default function CameraScreen() {
             console.log('🎨 B&W filter detected - uploading for grayscale conversion...');
             setIsProcessingBW(true);
             
+            // Set timeout to prevent infinite loading
+            const timeout = setTimeout(() => {
+              setIsProcessingBW(false);
+              Alert.alert('Timeout', 'Processing took too long. Please try again.');
+              console.error('⏰ B&W processing timeout after 15 seconds');
+            }, 15000); // 15 second timeout
+            
             try {
               const { user } = await getCurrentUser();
               if (!user) {
+                clearTimeout(timeout);
                 Alert.alert('Error', 'Please sign in to upload photos');
                 setIsProcessingBW(false);
                 return;
@@ -196,6 +205,7 @@ export default function CameraScreen() {
                 photoStyle
               );
 
+              clearTimeout(timeout);
               console.log('✅ B&W conversion complete!');
               console.log('   Image URL:', uploadedPhoto.imageUrl);
               
@@ -204,6 +214,7 @@ export default function CameraScreen() {
               setUploadedPhotoId(uploadedPhoto.id);
               setIsProcessingBW(false);
             } catch (error) {
+              clearTimeout(timeout);
               console.error('❌ B&W upload failed:', error);
               Alert.alert('Error', 'Failed to process B&W photo. Please try again.');
               setIsProcessingBW(false);
@@ -344,6 +355,36 @@ export default function CameraScreen() {
           await AsyncStorage.removeItem('lastNotificationData');
           setTimeRemaining(null);
           setIsLate(false);
+
+          // 📸 Send friend posted notifications to followers
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('username')
+              .eq('id', user.id)
+              .single();
+
+            if (userData) {
+              const { data: followers } = await supabase
+                .from('follows')
+                .select('follower_id')
+                .eq('following_id', user.id);
+
+              if (followers && followers.length > 0) {
+                console.log(`📸 Notifying ${followers.length} followers about new post from @${userData.username}`);
+                
+                for (const follower of followers) {
+                  const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
+                  if (wantsNotif) {
+                    await sendFriendPostedNotification(follower.follower_id, userData.username, photo.id);
+                  }
+                }
+              }
+            }
+          } catch (notifError) {
+            // Don't fail the upload if notifications fail
+            console.error('❌ Error sending friend posted notifications:', notifError);
+          }
         }
       }
 
@@ -401,6 +442,7 @@ export default function CameraScreen() {
                 showRainbow={true}
                 width={340}
                 filterId={photoStyle}
+                showOverlay={true}
               />
             </View>
 
@@ -481,7 +523,7 @@ export default function CameraScreen() {
                 <Text style={styles.lateText}>⚠️ LATE</Text>
               </View>
             ) : (
-              <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
+            <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
             )}
           </View>
 

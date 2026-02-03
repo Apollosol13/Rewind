@@ -9,37 +9,71 @@ export interface DailyPost {
 }
 
 /**
- * Check if user has posted today
+ * Check if user can post (based on 24-hour cycle from last post)
  */
-export async function hasPostedToday(userId: string) {
+export async function canUserPost(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    console.log('📅 Checking for posts on date:', today, 'for user:', userId);
-    
-    const { data, error } = await supabase
-      .from('daily_posts')
-      .select('id, photo_id, post_date')
-      .eq('user_id', userId)
-      .eq('post_date', today)
-      .maybeSingle();
+    // Get user's last post time from database
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('last_post_time')
+      .eq('id', userId)
+      .single();
 
-    console.log('📅 Query result:', data ? `Found post: ${data.id}` : 'No post found', 'Error:', error?.message || 'none');
+    if (userError) throw userError;
+
+    // If never posted before, they can post
+    if (!userData?.last_post_time) {
+      console.log('📅 User has never posted - can post');
+      return { canPost: true, lastPostTime: null, error: null };
+    }
+
+    // Calculate 24 hours from last post
+    const lastPostTime = new Date(userData.last_post_time);
+    const nextPostTime = new Date(lastPostTime.getTime() + (24 * 60 * 60 * 1000)); // +24 hours
+    const now = new Date();
+
+    // Can post if 24 hours have passed
+    const canPost = now >= nextPostTime;
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
-    return { hasPosted: !!data, photoId: data?.photo_id, error: null };
+    const hoursRemaining = canPost ? 0 : Math.ceil((nextPostTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+    console.log('📅 Last post:', lastPostTime.toISOString(), '| Can post:', canPost, '| Hours remaining:', hoursRemaining);
+
+    return { 
+      canPost, 
+      lastPostTime: userData.last_post_time,
+      error: null 
+    };
   } catch (error) {
-    console.error('Error checking daily post:', error);
-    return { hasPosted: false, photoId: null, error };
+    console.error('Error checking if user can post:', error);
+    return { canPost: true, lastPostTime: null, error }; // Allow posting on error
   }
 }
 
 /**
- * Record daily post
+ * @deprecated Use canUserPost() instead - checks 24-hour cycle, not calendar date
+ */
+export async function hasPostedToday(userId: string) {
+  // Redirect to new function for backwards compatibility
+  const { canPost, lastPostTime, error } = await canUserPost(userId);
+  return { hasPosted: !canPost, photoId: null, error };
+}
+
+/**
+ * Record daily post and update last_post_time
  */
 export async function recordDailyPost(userId: string, photoId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
     
+    // Update user's last post time (critical for 24-hour cycle)
+    await supabase
+      .from('users')
+      .update({ last_post_time: now.toISOString() })
+      .eq('id', userId);
+    
+    // Record in daily_posts table for history tracking
     const { data, error } = await supabase
       .from('daily_posts')
       .insert([
@@ -53,6 +87,7 @@ export async function recordDailyPost(userId: string, photoId: string) {
       .single();
 
     if (error) throw error;
+    console.log('✅ Daily post recorded | last_post_time updated:', now.toISOString());
     return { dailyPost: data as DailyPost, error: null };
   } catch (error) {
     console.error('Error recording daily post:', error);
@@ -61,15 +96,25 @@ export async function recordDailyPost(userId: string, photoId: string) {
 }
 
 /**
- * Get time until next posting window (midnight)
+ * Get time until next posting window (24 hours from last post)
  */
-export function getTimeUntilNextPost() {
+export function getTimeUntilNextPost(lastPostTime?: string | Date | null) {
+  if (!lastPostTime) {
+    // No previous post, can post anytime
+    return { hours: 0, minutes: 0, seconds: 0, totalMs: 0 };
+  }
+
+  const lastPost = typeof lastPostTime === 'string' ? new Date(lastPostTime) : lastPostTime;
+  const nextAvailable = new Date(lastPost.getTime() + (24 * 60 * 60 * 1000)); // +24 hours
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
   
-  const diff = tomorrow.getTime() - now.getTime();
+  const diff = nextAvailable.getTime() - now.getTime();
+  
+  if (diff <= 0) {
+    // 24 hours have passed, can post now
+    return { hours: 0, minutes: 0, seconds: 0, totalMs: 0 };
+  }
+  
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);

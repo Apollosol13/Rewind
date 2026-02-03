@@ -32,7 +32,7 @@ import {
   deleteComment
 } from '../services/photos';
 import { getCurrentUser } from '../services/auth';
-import { hasPostedToday as checkHasPostedToday } from '../services/dailyPost';
+import { canUserPost } from '../services/dailyPost';
 import { searchUsers, getSuggestedUsers } from '../services/search';
 import { findContactsOnApp } from '../services/contacts';
 import { isFollowing, followUser, unfollowUser } from '../services/follows';
@@ -89,10 +89,10 @@ export default function FeedScreen() {
 
   const loadFeed = async () => {
     try {
-      // Check if user has posted today
+      // Check if user can post (24-hour cycle check)
       if (currentUserId) {
-        const { hasPosted } = await checkHasPostedToday(currentUserId);
-        setHasPostedToday(hasPosted);
+        const { canPost } = await canUserPost(currentUserId);
+        setHasPostedToday(!canPost); // hasPostedToday = true if can't post yet
       }
 
       const { photos: fetchedPhotos, error } = await getFeed();

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import PolaroidFrame from './PolaroidFrame';
-import HandwrittenText from './HandwrittenText';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { IconSymbol } from '../../components/ui/icon-symbol';
 import { Photo } from '../config/supabase';
 import { getRelativeTime } from '../utils/dateFormatter';
-import { IconSymbol } from '../../components/ui/icon-symbol';
+import HandwrittenText from './HandwrittenText';
+import PolaroidFrame from './PolaroidFrame';
 
 interface PhotoCardProps {
   photo: Photo;

@@ -28,7 +28,7 @@ import { uploadPhotoToBackend } from '../services/backendApi';
 import { supabase } from '../config/supabase';
 import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
-import { hasPostedToday, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
+import { canUserPost, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
 import { scheduleSmartDailyNotification, scheduleExact24HourNotification, getTimerInfo, sendFriendPostedNotification } from '../services/notifications';
 import { shouldSendNotification } from '../services/notificationPreferences';
@@ -126,20 +126,30 @@ export default function CameraScreen() {
   const checkDailyPostStatus = async () => {
     const { user } = await getCurrentUser();
     if (user) {
-      console.log('📅 Checking daily post status for user:', user.id);
-      const { hasPosted, photoId, error } = await hasPostedToday(user.id);
-      console.log('📅 Has posted today?', hasPosted, 'Photo ID:', photoId);
+      console.log('📅 Checking if user can post (24-hour cycle)...');
+      const { canPost, lastPostTime, error } = await canUserPost(user.id);
+      console.log('📅 Can post?', canPost, '| Last post:', lastPostTime);
       if (error) {
-        console.error('📅 Error checking daily post:', error);
+        console.error('📅 Error checking post status:', error);
       }
-      setAlreadyPosted(hasPosted);
+      setAlreadyPosted(!canPost);
+      
+      // Update time remaining based on last post time
+      if (lastPostTime) {
+        const time = getTimeUntilNextPost(lastPostTime);
+        setTimeUntilNext(time);
+      }
     }
     setCheckingStatus(false);
   };
 
-  const updateTimeRemaining = () => {
-    const time = getTimeUntilNextPost();
-    setTimeUntilNext(time);
+  const updateTimeRemaining = async () => {
+    const { user } = await getCurrentUser();
+    if (user) {
+      const { lastPostTime } = await canUserPost(user.id);
+      const time = getTimeUntilNextPost(lastPostTime);
+      setTimeUntilNext(time);
+    }
   };
 
   if (!permission) {

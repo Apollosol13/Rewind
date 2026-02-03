@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import PolaroidFrame from './PolaroidFrame';
 import HandwrittenText from './HandwrittenText';
@@ -103,16 +103,26 @@ export default function PhotoCard({
         </View>
       </View>
 
-      {/* Polaroid Photo */}
+      {/* Photo - Conditional rendering based on filter */}
       <View style={styles.polaroidContainer}>
-      <PolaroidFrame
-        imageUri={photo.image_url}
-        caption={photo.caption}
-        date={photo.created_at}
-        showRainbow={true}
-        width={340}
-        filterId={photo.photo_style as any || 'polaroid'}
-      />
+        {photo.photo_style === 'camcorder' ? (
+          // Camcorder: Show raw image (overlay already baked in)
+          <Image 
+            source={{ uri: photo.image_url }}
+            style={styles.camcorderImage}
+            resizeMode="cover"
+          />
+        ) : (
+          // All other filters: Show in Polaroid frame
+          <PolaroidFrame
+            imageUri={photo.image_url}
+            caption={photo.caption}
+            date={photo.created_at}
+            showRainbow={true}
+            width={340}
+            filterId={photo.photo_style as any || 'polaroid'}
+          />
+        )}
       </View>
 
       {/* Action Buttons */}
@@ -253,6 +263,12 @@ const styles = StyleSheet.create({
   polaroidContainer: {
     alignItems: 'center',
     width: '100%',
+  },
+  camcorderImage: {
+    width: 340,
+    height: 340,
+    borderRadius: 8,
+    backgroundColor: '#000',
   },
   actions: {
     flexDirection: 'row',

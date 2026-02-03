@@ -644,14 +644,24 @@ export default function FeedScreen() {
               {/* Photo */}
               {selectedPhoto && (
                 <View style={styles.photoContainer}>
-                  <PolaroidFrame
-                    imageUri={selectedPhoto.image_url}
-                    caption={selectedPhoto.caption}
-                    date={selectedPhoto.created_at}
-                    showRainbow={true}
-                    width={340}
-                    filterId={selectedPhoto.photo_style as any || 'polaroid'}
-                  />
+                  {selectedPhoto.photo_style === 'camcorder' ? (
+                    // Camcorder: Show raw image (overlay already baked in)
+                    <Image 
+                      source={{ uri: selectedPhoto.image_url }}
+                      style={styles.camcorderImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    // All other filters: Show in Polaroid frame
+                    <PolaroidFrame
+                      imageUri={selectedPhoto.image_url}
+                      caption={selectedPhoto.caption}
+                      date={selectedPhoto.created_at}
+                      showRainbow={true}
+                      width={340}
+                      filterId={selectedPhoto.photo_style as any || 'polaroid'}
+                    />
+                  )}
                 </View>
               )}
 
@@ -1094,6 +1104,12 @@ const styles = StyleSheet.create({
   photoContainer: {
     alignItems: 'center',
     paddingVertical: 20,
+  },
+  camcorderImage: {
+    width: 340,
+    height: 340,
+    borderRadius: 8,
+    backgroundColor: '#000',
   },
   actionsContainer: {
     flexDirection: 'row',

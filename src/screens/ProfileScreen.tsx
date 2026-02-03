@@ -1255,15 +1255,25 @@ export default function ProfileScreen() {
                     collapsable={false} 
                     style={styles.storyContainer}
                   >
-                    <PolaroidFrame
-                      imageUri={selectedPhoto.image_url}
-                      caption={selectedPhoto.caption}
-                      date={selectedPhoto.created_at}
-                      showRainbow={true}
-                      width={300}
-                      filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
-                      showWatermark={showWatermark}
-                    />
+                    {selectedPhoto.photo_style === 'camcorder' ? (
+                      // Camcorder: Show raw image (overlay already baked in)
+                      <Image 
+                        source={{ uri: selectedPhoto.image_url }}
+                        style={styles.camcorderImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      // All other filters: Show in Polaroid frame
+                      <PolaroidFrame
+                        imageUri={selectedPhoto.image_url}
+                        caption={selectedPhoto.caption}
+                        date={selectedPhoto.created_at}
+                        showRainbow={true}
+                        width={300}
+                        filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
+                        showWatermark={showWatermark}
+                      />
+                    )}
                     
                     {/* Share Button - Sticky Note on Cork Board (hidden when capturing for share) */}
                     {!showWatermark && (
@@ -1764,6 +1774,12 @@ const styles = StyleSheet.create({
   photoContainer: {
     alignItems: 'center',
     paddingVertical: 20,
+  },
+  camcorderImage: {
+    width: 300,
+    height: 300,
+    borderRadius: 8,
+    backgroundColor: '#000',
   },
   storyContainer: {
     backgroundColor: '#B8956A', // Cork board background

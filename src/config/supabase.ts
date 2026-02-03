@@ -36,6 +36,8 @@ export interface Photo {
   likes_count?: number;
   comments_count?: number;
   photo_style?: string;
+  posted_on_time?: boolean; // Whether photo was posted within 3:30 timer
+  minutes_late?: number; // How many minutes late (0 if on time)
   users?: {
     id: string;
     username: string;

@@ -23,8 +23,23 @@ export default function RootLayout() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Check initial session
-    checkAuth();
+    // Initialize app with AsyncStorage warm-up to prevent first-launch hangs
+    const initializeApp = async () => {
+      console.log('🔥 Warming up AsyncStorage...');
+      try {
+        // Touch AsyncStorage to ensure it's ready before Supabase tries to use it
+        await AsyncStorage.getItem('app_initialized');
+        await AsyncStorage.setItem('app_initialized', 'true');
+        console.log('✅ AsyncStorage ready');
+      } catch (error) {
+        console.error('⚠️ AsyncStorage init error:', error);
+      }
+      
+      // NOW check auth (after AsyncStorage is warm)
+      await checkAuth();
+    };
+
+    initializeApp();
 
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -141,12 +156,51 @@ export default function RootLayout() {
   }, [isAuthenticated]);
 
   const checkAuth = async () => {
+    console.log('🔍 Checking authentication...');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Add 10-second timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+      );
+      
+      const authPromise = supabase.auth.getSession();
+      
+      const { data: { session } } = await Promise.race([
+        authPromise,
+        timeoutPromise
+      ]) as any;
+      
+      console.log('✅ Auth check complete:', !!session);
       setIsAuthenticated(!!session);
     } catch (error) {
-      console.error('Error checking auth:', error);
+      console.error('⚠️ Auth check error/timeout:', error);
+      
+      // Fallback: Check AsyncStorage directly for stored session
+      try {
+        console.log('🔍 Checking AsyncStorage for stored session...');
+        const keys = await AsyncStorage.getAllKeys();
+        const authKeys = keys.filter(key => key.includes('auth-token'));
+        
+        if (authKeys.length > 0) {
+          const storedData = await AsyncStorage.getItem(authKeys[0]);
+          if (storedData) {
+            console.log('✅ Found stored session, assuming authenticated');
+            setIsAuthenticated(true);
+          } else {
+            console.log('⚠️ No valid stored session, assuming logged out');
+            setIsAuthenticated(false);
+          }
+        } else {
+          console.log('⚠️ No stored session found, assuming logged out');
+          setIsAuthenticated(false);
+        }
+      } catch (storageError) {
+        console.error('❌ AsyncStorage fallback error:', storageError);
+        // Final fallback - assume logged out
+        setIsAuthenticated(false);
+      }
     } finally {
+      console.log('✅ Auth check finished, setting isLoading to false');
       setIsLoading(false);
     }
   };

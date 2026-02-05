@@ -111,17 +111,18 @@ export default function CameraScreen() {
   };
 
   // Check daily post status on mount
-  useEffect(() => {
-    checkDailyPostStatus();
-    updateTimeRemaining();
-    
-    // Update countdown every minute
-    const interval = setInterval(() => {
-      updateTimeRemaining();
-    }, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  // DISABLED - One-photo-per-day limit removed
+  // useEffect(() => {
+  //   checkDailyPostStatus();
+  //   updateTimeRemaining();
+  //   
+  //   // Update countdown every minute
+  //   const interval = setInterval(() => {
+  //     updateTimeRemaining();
+  //   }, 60000);
+  //   
+  //   return () => clearInterval(interval);
+  // }, []);
 
   const checkDailyPostStatus = async () => {
     const { user } = await getCurrentUser();
@@ -172,15 +173,15 @@ export default function CameraScreen() {
   }
 
   const takePicture = async () => {
-    // Check if user has already posted today
-    if (alreadyPosted) {
-      Alert.alert(
-        '📸 Already Posted Today!',
-        `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
-        [{ text: 'OK', style: 'default' }]
-      );
-      return;
-    }
+    // ONE-PHOTO-PER-DAY LIMIT REMOVED - Users can post unlimited times
+    // if (alreadyPosted) {
+    //   Alert.alert(
+    //     '📸 Already Posted Today!',
+    //     `You've already shared your Rewind for today.\n\nNext post available in ${formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}`,
+    //     [{ text: 'OK', style: 'default' }]
+    //   );
+    //   return;
+    // }
 
     if (cameraRef.current) {
       try {
@@ -584,14 +585,14 @@ export default function CameraScreen() {
           )}
         </View>
 
-        {/* Daily Post Status Banner */}
-        {!checkingStatus && alreadyPosted && (
+        {/* Daily Post Status Banner - DISABLED (one-photo-per-day limit removed) */}
+        {/* {!checkingStatus && alreadyPosted && (
           <View style={styles.statusBanner}>
             <Text style={styles.statusTextSmall}>
               ✓ Posted • Next in {formatTimeRemaining(timeUntilNext.hours, timeUntilNext.minutes)}
             </Text>
           </View>
-        )}
+        )} */}
 
         {/* Bottom Controls Section */}
         <View style={styles.controlsSection}>

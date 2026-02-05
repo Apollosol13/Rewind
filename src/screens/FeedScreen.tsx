@@ -90,10 +90,11 @@ export default function FeedScreen() {
   const loadFeed = async () => {
     try {
       // Check if user can post (24-hour cycle check)
-      if (currentUserId) {
-        const { canPost } = await canUserPost(currentUserId);
-        setHasPostedToday(!canPost); // hasPostedToday = true if can't post yet
-      }
+      // DISABLED - One-photo-per-day limit removed
+      // if (currentUserId) {
+      //   const { canPost } = await canUserPost(currentUserId);
+      //   setHasPostedToday(!canPost); // hasPostedToday = true if can't post yet
+      // }
 
       const { photos: fetchedPhotos, error } = await getFeed();
       if (!error && fetchedPhotos) {

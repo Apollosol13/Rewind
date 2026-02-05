@@ -90,11 +90,7 @@ export default function PhotoCard({
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.time}>{getRelativeTime(photo.created_at)}</Text>
-          {!photo.posted_on_time && (
-            <View style={styles.lateBadge}>
-              <Text style={styles.lateBadgeText}>LATE</Text>
-            </View>
-          )}
+          {/* LATE badge removed - timer system disabled */}
           {currentUserId !== photo.user_id && onReport && (
             <TouchableOpacity onPress={onReport} style={styles.reportButton}>
               <IconSymbol name="flag" size={18} color="#999" />

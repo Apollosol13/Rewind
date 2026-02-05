@@ -452,3 +452,81 @@ export function getTimerInfo(notificationData: any): { timeRemaining: number | n
     return { timeRemaining: 0, isLate: true };
   }
 }
+
+/**
+ * Schedule multiple random "Time to Rewind!" notifications per day (BeReal style)
+ * @param count - Number of notifications per day (default: 3)
+ */
+export async function scheduleRandomDailyNotifications(count: number = 3) {
+  try {
+    console.log(`📱 Scheduling ${count} random notifications for today...`);
+    
+    // Cancel all existing scheduled notifications
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Define "active hours" for notifications (8 AM to 10 PM)
+    const startHour = 8;
+    const endHour = 22;
+    const totalMinutes = (endHour - startHour) * 60;
+    
+    // Generate random times
+    const randomTimes: Date[] = [];
+    const usedMinutes = new Set<number>();
+    
+    for (let i = 0; i < count; i++) {
+      let randomMinute;
+      // Ensure times are at least 2 hours apart
+      do {
+        randomMinute = Math.floor(Math.random() * totalMinutes);
+      } while (
+        Array.from(usedMinutes).some(used => Math.abs(used - randomMinute) < 120)
+      );
+      
+      usedMinutes.add(randomMinute);
+      
+      const notificationTime = new Date(today);
+      notificationTime.setHours(startHour + Math.floor(randomMinute / 60));
+      notificationTime.setMinutes(randomMinute % 60);
+      notificationTime.setSeconds(0);
+      
+      // If time has already passed today, schedule for tomorrow
+      if (notificationTime <= now) {
+        notificationTime.setDate(notificationTime.getDate() + 1);
+      }
+      
+      randomTimes.push(notificationTime);
+    }
+    
+    // Sort times chronologically
+    randomTimes.sort((a, b) => a.getTime() - b.getTime());
+    
+    // Schedule each notification
+    for (const time of randomTimes) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '⏰ Time to Rewind!',
+          body: 'Capture your moment and share it with friends! 📸',
+          sound: true,
+          data: {
+            type: 'daily_rewind',
+            scheduledFor: time.toISOString(),
+          },
+        },
+        trigger: {
+          date: time,
+        },
+      });
+      
+      console.log(`✅ Scheduled notification for ${time.toLocaleString()}`);
+    }
+    
+    console.log(`✅ Successfully scheduled ${count} notifications`);
+    return { success: true, times: randomTimes };
+  } catch (error) {
+    console.error('❌ Error scheduling random notifications:', error);
+    return { success: false, error };
+  }
+}

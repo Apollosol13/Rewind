@@ -30,7 +30,7 @@ import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
 import { canUserPost, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
 import { savePreferredPostHour } from '../services/notificationPreferences';
-import { scheduleSmartDailyNotification, scheduleExact24HourNotification, getTimerInfo, sendFriendPostedNotification } from '../services/notifications';
+import { scheduleRandomDailyNotifications, sendFriendPostedNotification } from '../services/notifications';
 import { shouldSendNotification } from '../services/notificationPreferences';
 import { captureRef } from 'react-native-view-shot';
 import * as Haptics from 'expo-haptics';
@@ -54,8 +54,7 @@ export default function CameraScreen() {
   const [alreadyPosted, setAlreadyPosted] = useState(false);
   const [timeUntilNext, setTimeUntilNext] = useState({ hours: 0, minutes: 0 });
   const [checkingStatus, setCheckingStatus] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // Timer countdown in seconds
-  const [isLate, setIsLate] = useState(false); // Whether posting outside timer
+  // TIMER SYSTEM REMOVED - No more countdown or "late" tracking
   const cameraRef = useRef<CameraView>(null);
   const previewRef = useRef<View>(null); // Ref for capturing styled preview
   const router = useRouter();
@@ -67,48 +66,7 @@ export default function CameraScreen() {
     }
   }, []);
 
-  // Check timer status on mount
-  useEffect(() => {
-    checkTimerStatus();
-  }, []);
-
-  // Update timer countdown every second
-  useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0) return;
-
-    const interval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev === null || prev <= 0) {
-          setIsLate(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [timeRemaining]);
-
-  const checkTimerStatus = async () => {
-    try {
-      // Check if there's an active timer from notification
-      const notifDataString = await AsyncStorage.getItem('lastNotificationData');
-      if (notifDataString) {
-        const notifData = JSON.parse(notifDataString);
-        const timerInfo = getTimerInfo(notifData);
-        
-        setTimeRemaining(timerInfo.timeRemaining);
-        setIsLate(timerInfo.isLate);
-        
-        console.log('⏰ Timer status:', timerInfo);
-      } else {
-        // No active timer
-        console.log('📍 No active timer - first post will start 24h cycle');
-      }
-    } catch (error) {
-      console.error('Error checking timer status:', error);
-    }
-  };
+  // TIMER SYSTEM REMOVED - All timer tracking disabled
 
   // Check daily post status on mount
   // DISABLED - One-photo-per-day limit removed
@@ -339,8 +297,9 @@ export default function CameraScreen() {
 
         // Calculate if post was on-time or late
         const postTime = new Date();
-        const postedOnTime = !isLate;
-        const minutesLate = isLate ? Math.floor((postTime.getTime() - (timeRemaining || 0)) / 60000) : 0;
+        // TIMER SYSTEM REMOVED - No longer tracking on-time/late status
+        const postedOnTime = true; // All posts considered "on time" now
+        const minutesLate = 0;
 
         // Update photo with timer metadata
         await supabase
@@ -358,14 +317,9 @@ export default function CameraScreen() {
           await recordDailyPost(user.id, photo.id);
           setAlreadyPosted(true);
           
-          // Schedule exact 24-hour notification (BeReal style)
-          await scheduleExact24HourNotification(user.id, postTime);
-          console.log('⏰ Next notification scheduled for exactly 24 hours from now');
-          
-          // Clear timer data
-          await AsyncStorage.removeItem('lastNotificationData');
-          setTimeRemaining(null);
-          setIsLate(false);
+          // Schedule random daily notifications (3 per day)
+          await scheduleRandomDailyNotifications(3);
+          console.log('📱 Scheduled 3 random daily notifications');
 
           // 📸 Send friend posted notifications to followers
           try {
@@ -523,19 +477,9 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>✕</Text>
           </TouchableOpacity>
 
-          {/* REWND Branding or Timer */}
+          {/* REWND Branding */}
           <View style={styles.brandingTop}>
-            {timeRemaining !== null && timeRemaining > 0 ? (
-              <View style={styles.timerContainer}>
-                <Text style={styles.timerText}>⏱️ {formatTimer(timeRemaining)}</Text>
-              </View>
-            ) : isLate ? (
-              <View style={styles.lateContainer}>
-                <Text style={styles.lateText}>⚠️ LATE</Text>
-              </View>
-            ) : (
             <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
-            )}
           </View>
 
           {/* Flash Toggle */}

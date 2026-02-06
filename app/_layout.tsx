@@ -17,6 +17,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isAuthenticatedRef = useRef(false); // Track current auth state for closures
   const router = useRouter();
   const segments = useSegments();
   const notificationListener = useRef<Notifications.Subscription>();
@@ -43,8 +44,10 @@ export default function RootLayout() {
 
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const wasAuthenticated = isAuthenticated;
-      setIsAuthenticated(!!session);
+      const wasAuthenticated = isAuthenticatedRef.current;
+      const newAuthState = !!session;
+      setIsAuthenticated(newAuthState);
+      isAuthenticatedRef.current = newAuthState; // Update ref for closures
       
       // Request notification permissions when user logs in
       if (session && !wasAuthenticated) {
@@ -114,7 +117,7 @@ export default function RootLayout() {
     const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data;
       
-      if (!isAuthenticated) {
+      if (!isAuthenticatedRef.current) {
         console.log('⚠️ User not authenticated, ignoring notification tap');
         return;
       }
@@ -153,7 +156,7 @@ export default function RootLayout() {
         responseListener.current.remove();
       }
     };
-  }, [isAuthenticated]);
+  }, []); // FIXED: Empty array - only run once on mount!
 
   const checkAuth = async () => {
     console.log('🔍 Checking authentication...');
@@ -171,7 +174,9 @@ export default function RootLayout() {
       ]) as any;
       
       console.log('✅ Auth check complete:', !!session);
-      setIsAuthenticated(!!session);
+      const authState = !!session;
+      setIsAuthenticated(authState);
+      isAuthenticatedRef.current = authState;
     } catch (error) {
       console.error('⚠️ Auth check error/timeout:', error);
       
@@ -186,18 +191,22 @@ export default function RootLayout() {
           if (storedData) {
             console.log('✅ Found stored session, assuming authenticated');
             setIsAuthenticated(true);
+            isAuthenticatedRef.current = true;
           } else {
             console.log('⚠️ No valid stored session, assuming logged out');
             setIsAuthenticated(false);
+            isAuthenticatedRef.current = false;
           }
         } else {
           console.log('⚠️ No stored session found, assuming logged out');
           setIsAuthenticated(false);
+          isAuthenticatedRef.current = false;
         }
       } catch (storageError) {
         console.error('❌ AsyncStorage fallback error:', storageError);
         // Final fallback - assume logged out
         setIsAuthenticated(false);
+        isAuthenticatedRef.current = false;
       }
     } finally {
       console.log('✅ Auth check finished, setting isLoading to false');

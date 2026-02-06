@@ -1260,7 +1260,7 @@ export default function ProfileScreen() {
                       <Image 
                         source={{ uri: selectedPhoto.image_url }}
                         style={styles.camcorderImage}
-                        resizeMode="cover"
+                        resizeMode="contain"
                       />
                     ) : (
                       // All other filters: Show in Polaroid frame

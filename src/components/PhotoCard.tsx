@@ -106,7 +106,7 @@ export default function PhotoCard({
           <Image 
             source={{ uri: photo.image_url }}
             style={styles.camcorderImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         ) : (
           // All other filters: Show in Polaroid frame

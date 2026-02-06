@@ -1,40 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  Alert,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
-  Dimensions,
-} from 'react-native';
-import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
+import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import CameraButton from '../components/CameraButton';
-import PolaroidFrame from '../components/PolaroidFrame';
-import HandwrittenText from '../components/HandwrittenText';
-import StyleDial, { PhotoStyle } from '../components/StyleDial';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
+} from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import CamcorderOverlay from '../components/CamcorderOverlay';
 import FilterOverlay from '../components/FilterOverlay';
-import { IconSymbol } from '../../components/ui/icon-symbol';
-import { uploadPhoto } from '../services/photos';
-import { uploadPhotoToBackend } from '../services/backendApi';
+import HandwrittenText from '../components/HandwrittenText';
+import PolaroidFrame from '../components/PolaroidFrame';
+import StyleDial, { PhotoStyle } from '../components/StyleDial';
 import { supabase } from '../config/supabase';
-import { shouldShowFilterOverlay } from '../utils/filterPresets';
 import { getCurrentUser } from '../services/auth';
-import { canUserPost, recordDailyPost, getTimeUntilNextPost, formatTimeRemaining } from '../services/dailyPost';
-import { savePreferredPostHour } from '../services/notificationPreferences';
-import { scheduleRandomDailyNotifications, sendFriendPostedNotification } from '../services/notifications';
+import { uploadPhotoToBackend } from '../services/backendApi';
+import { canUserPost, getTimeUntilNextPost, recordDailyPost } from '../services/dailyPost';
 import { shouldSendNotification } from '../services/notificationPreferences';
-import { captureRef } from 'react-native-view-shot';
-import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { scheduleRandomDailyNotifications, sendFriendPostedNotification } from '../services/notifications';
+import { shouldShowFilterOverlay } from '../utils/filterPresets';
 
 // Screen size helpers for responsive layout
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

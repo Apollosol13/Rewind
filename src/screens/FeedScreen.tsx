@@ -1,44 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  FlatList,
-  StyleSheet,
-  RefreshControl,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
-  Modal,
-  Image,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  Dimensions,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import PhotoCard from '../components/PhotoCard';
-import HandwrittenText from '../components/HandwrittenText';
-import PolaroidFrame from '../components/PolaroidFrame';
-import { 
-  getFeed, 
-  likePhoto, 
-  unlikePhoto, 
-  addComment, 
-  getComments, 
-  hasUserLikedPhoto,
-  addCommentReply,
-  deleteComment
-} from '../services/photos';
-import { getCurrentUser } from '../services/auth';
-import { canUserPost } from '../services/dailyPost';
-import { searchUsers, getSuggestedUsers } from '../services/search';
-import { findContactsOnApp } from '../services/contacts';
-import { isFollowing, followUser, unfollowUser } from '../services/follows';
-import { reportPhoto, reportComment, ReportReason } from '../services/reports';
-import { Photo, User } from '../config/supabase';
 import { IconSymbol } from '../../components/ui/icon-symbol';
+import HandwrittenText from '../components/HandwrittenText';
+import PhotoCard from '../components/PhotoCard';
+import PolaroidFrame from '../components/PolaroidFrame';
+import { Photo, User } from '../config/supabase';
+import { getCurrentUser } from '../services/auth';
+import { findContactsOnApp } from '../services/contacts';
+import { followUser, isFollowing, unfollowUser } from '../services/follows';
+import {
+    addComment,
+    addCommentReply,
+    deleteComment,
+    getComments,
+    getFeed,
+    hasUserLikedPhoto,
+    likePhoto,
+    unlikePhoto
+} from '../services/photos';
+import { reportComment, reportPhoto, ReportReason } from '../services/reports';
+import { getSuggestedUsers, searchUsers } from '../services/search';
 
 export default function FeedScreen() {
   const [photos, setPhotos] = useState<Photo[]>([]);

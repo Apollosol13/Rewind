@@ -1,58 +1,56 @@
-import React, { useState, useEffect, useRef } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  Alert,
-  Image,
-  FlatList,
-  Modal,
-  SafeAreaView,
-  ActionSheetIOS,
-  Platform,
-  TextInput,
-  KeyboardAvoidingView,
-  Dimensions,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Linking,
-  Share,
+    ActionSheetIOS,
+    Alert,
+    Dimensions,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Linking,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import { IconSymbol } from '../../components/ui/icon-symbol';
+import FilterOverlay from '../components/FilterOverlay';
+import HandwrittenText from '../components/HandwrittenText';
+import PolaroidFrame from '../components/PolaroidFrame';
+import StickyNote from '../components/StickyNote';
+import { Photo, User } from '../config/supabase';
+import { deleteAccount, getCurrentUser, getUserProfile, signOut, updateUserProfile, uploadProfilePicture } from '../services/auth';
+import { getNewFollowersCount } from '../services/followerBadge';
+import { getFollowerCount, getFollowingCount } from '../services/follows';
+import {
+    requestNotificationPermissions,
+    scheduleDailyNotification,
+} from '../services/notifications';
+import {
+    addComment,
+    addCommentReply,
+    deletePhoto,
+    deleteComment as deletePhotoComment,
+    getComments,
+    getUserPhotos,
+    hasUserLikedPhoto,
+    likePhoto,
+    unlikePhoto
+} from '../services/photos';
+import { createStickyNote, deleteStickyNote, getUserStickyNotes, StickyNote as StickyNoteType } from '../services/stickyNotes';
+import { validateUsername } from '../utils/usernameValidator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isTablet = SCREEN_WIDTH >= 768;
-import { useRouter, useFocusEffect } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import HandwrittenText from '../components/HandwrittenText';
-import PolaroidFrame from '../components/PolaroidFrame';
-import FilterOverlay from '../components/FilterOverlay';
-import { getCurrentUser, getUserProfile, signOut, updateUserProfile, uploadProfilePicture, deleteAccount } from '../services/auth';
-import { 
-  getUserPhotos, 
-  deletePhoto,
-  likePhoto,
-  unlikePhoto,
-  addComment,
-  getComments,
-  hasUserLikedPhoto,
-  addCommentReply,
-  deleteComment as deletePhotoComment
-} from '../services/photos';
-import { getUserStickyNotes, createStickyNote, deleteStickyNote, StickyNote as StickyNoteType } from '../services/stickyNotes';
-import { getFollowerCount, getFollowingCount } from '../services/follows';
-import { validateUsername } from '../utils/usernameValidator';
-import { getNewFollowersCount } from '../services/followerBadge';
-import { Photo, User } from '../config/supabase';
-import StickyNote from '../components/StickyNote';
-import {
-  scheduleDailyNotification,
-  requestNotificationPermissions,
-} from '../services/notifications';
-import { IconSymbol } from '../../components/ui/icon-symbol';
-import { captureRef } from 'react-native-view-shot';
 
 interface MonthlyPhotos {
   month: string;

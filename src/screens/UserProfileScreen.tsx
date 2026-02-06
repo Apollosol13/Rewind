@@ -1,47 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-  Platform,
-  ActionSheetIOS,
-  KeyboardAvoidingView,
-  Dimensions,
+    ActionSheetIOS,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { IconSymbol } from '../../components/ui/icon-symbol';
+import FilterOverlay from '../components/FilterOverlay';
+import HandwrittenText from '../components/HandwrittenText';
+import PolaroidFrame from '../components/PolaroidFrame';
+import { Photo, User } from '../config/supabase';
+import { getCurrentUser, getUserProfile } from '../services/auth';
+import { blockUser, isUserBlocked, unblockUser } from '../services/blocks';
+import { getNewFollowersCount } from '../services/followerBadge';
+import { followUser, getFollowerCount, getFollowingCount, isFollowing, unfollowUser } from '../services/follows';
+import {
+    addComment,
+    addCommentReply,
+    deleteComment as deletePhotoComment,
+    getComments,
+    getUserPhotos,
+    hasUserLikedPhoto,
+    likePhoto,
+    unlikePhoto
+} from '../services/photos';
+import { ReportReason, getReasonDisplayText, reportUser } from '../services/reports';
+import { areMutualFollowers, canSendMessageTo, sendStickyMessage } from '../services/stickyMessages';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isTablet = SCREEN_WIDTH >= 768;
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { getUserProfile } from '../services/auth';
-import { 
-  getUserPhotos,
-  likePhoto,
-  unlikePhoto,
-  addComment,
-  getComments,
-  hasUserLikedPhoto,
-  addCommentReply,
-  deleteComment as deletePhotoComment
-} from '../services/photos';
-import { getFollowerCount, getFollowingCount, isFollowing, followUser, unfollowUser } from '../services/follows';
-import { getNewFollowersCount } from '../services/followerBadge';
-import { areMutualFollowers, sendStickyMessage, canSendMessageTo } from '../services/stickyMessages';
-import { blockUser, unblockUser, isUserBlocked } from '../services/blocks';
-import { reportUser, ReportReason, getReasonDisplayText } from '../services/reports';
-import { User, Photo } from '../config/supabase';
-import { IconSymbol } from '../../components/ui/icon-symbol';
-import HandwrittenText from '../components/HandwrittenText';
-import FilterOverlay from '../components/FilterOverlay';
-import PolaroidFrame from '../components/PolaroidFrame';
-import { getCurrentUser } from '../services/auth';
 
 interface MonthlyPhotos {
   monthLabel: string;

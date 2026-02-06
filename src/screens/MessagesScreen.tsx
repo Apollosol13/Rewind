@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import HandwrittenText from '../components/HandwrittenText';
 import StickyNote from '../components/StickyNote';
 import { IconSymbol } from '../../components/ui/icon-symbol';
@@ -27,11 +27,13 @@ import {
   StickyMessage,
 } from '../services/stickyMessages';
 import { getCurrentUser } from '../services/auth';
+import { supabase } from '../config/supabase';
 
 type Tab = 'inbox' | 'sent';
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>('inbox');
   const [inboxMessages, setInboxMessages] = useState<StickyMessage[]>([]);
   const [sentMessages, setSentMessages] = useState<StickyMessage[]>([]);
@@ -44,6 +46,49 @@ export default function MessagesScreen() {
   useEffect(() => {
     loadMessages();
   }, [activeTab]);
+
+  // Handle opening specific message from notification
+  useEffect(() => {
+    const openMessageFromNotification = async () => {
+      if (!params.openMessageId) return;
+      
+      console.log('📬 Attempting to open message from notification:', params.openMessageId);
+      
+      // First check if message is already loaded in inbox
+      const messageInInbox = inboxMessages.find(m => m.id === params.openMessageId);
+      if (messageInInbox) {
+        console.log('✅ Found message in inbox, opening...');
+        handleMessagePress(messageInInbox);
+        return;
+      }
+      
+      // If not in loaded messages, fetch directly from database
+      try {
+        console.log('🔍 Message not in inbox, fetching from database...');
+        const { data: message, error } = await supabase
+          .from('sticky_messages')
+          .select(`
+            *,
+            sender:sender_id (username, avatar_url)
+          `)
+          .eq('id', params.openMessageId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (message) {
+          console.log('✅ Fetched message, opening...');
+          // Make sure we're on inbox tab since this is a received message
+          setActiveTab('inbox');
+          handleMessagePress(message as StickyMessage);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching message:', error);
+      }
+    };
+    
+    openMessageFromNotification();
+  }, [params.openMessageId, inboxMessages]);
 
   const loadMessages = async () => {
     try {

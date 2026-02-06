@@ -28,8 +28,16 @@ export function handleNotificationNavigation(notificationData: any) {
         break;
       
       case 'new_message':
-        // Navigate to messages tab
-        router.push('/(tabs)/messages');
+        if (messageId) {
+          // Navigate to messages tab with message ID to open conversation
+          router.push({
+            pathname: '/(tabs)/messages',
+            params: { openMessageId: messageId }
+          });
+        } else {
+          // No message ID, just go to messages tab
+          router.push('/(tabs)/messages');
+        }
         break;
       
       case 'new_follower':

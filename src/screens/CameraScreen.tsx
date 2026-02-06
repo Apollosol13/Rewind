@@ -339,6 +339,12 @@ export default function CameraScreen() {
                 console.log(`📸 Notifying ${followers.length} followers about new post from @${userData.username}`);
                 
                 for (const follower of followers) {
+                  // Skip if follower is the poster themselves (no self-notifications!)
+                  if (follower.follower_id === user.id) {
+                    console.log('⚠️ Skipping self-notification');
+                    continue;
+                  }
+                  
                   const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
                   if (wantsNotif) {
                     await sendFriendPostedNotification(follower.follower_id, userData.username, photo.id);

@@ -57,38 +57,9 @@ export async function uploadPhoto(
     if (error) throw error;
 
     // 6. Notify followers who want friend posted notifications
+    // Friend posted notifications handled in CameraScreen to avoid duplicates
     if (data) {
-      try {
-        // Get poster's username
-        const { data: userData } = await supabase
-          .from('users')
-          .select('username')
-          .eq('id', userId)
-          .single();
-
-        if (userData) {
-          // Get all followers
-          const { data: followers } = await supabase
-            .from('follows')
-            .select('follower_id')
-            .eq('following_id', userId);
-
-          if (followers && followers.length > 0) {
-            console.log(`📸 Notifying ${followers.length} followers about new post from @${userData.username}`);
-            
-            // Send notification to each follower who wants it
-            for (const follower of followers) {
-              const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
-              if (wantsNotif) {
-                await sendFriendPostedNotification(follower.follower_id, userData.username, data.id);
-              }
-            }
-          }
-        }
-      } catch (notifError) {
-        // Don't fail the upload if notifications fail
-        console.error('Error sending friend posted notifications:', notifError);
-      }
+      console.log('✅ Photo uploaded successfully - ID:', data.id);
     }
 
     return { photo: data, error: null };

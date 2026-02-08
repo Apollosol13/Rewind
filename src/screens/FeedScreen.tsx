@@ -315,7 +315,7 @@ export default function FeedScreen() {
     if (!error) {
       Alert.alert(
         'Report Submitted',
-        'Thank you for helping keep REWND safe. We\'ll review this report within 24 hours.',
+        'Thank you for helping keep REWIND safe. We\'ll review this report within 24 hours.',
         [{ text: 'OK' }]
       );
     } else {
@@ -454,7 +454,7 @@ export default function FeedScreen() {
       if (error.code === 'PERMISSION_DENIED') {
         Alert.alert(
           'Permission Required',
-          'Please allow access to your contacts to find friends on REWND.',
+          'Please allow access to your contacts to find friends on REWIND.',
           [{ text: 'OK' }]
         );
       } else if (error.code === 'COLUMN_NOT_FOUND' || error.code === 'ACCESS_DENIED') {
@@ -487,7 +487,7 @@ export default function FeedScreen() {
       if (users.length === 0) {
         Alert.alert(
           'No Contacts Found',
-          'None of your contacts are on REWND yet. Invite them to join!',
+          'None of your contacts are on REWIND yet. Invite them to join!',
           [{ text: 'OK' }]
         );
       }
@@ -520,7 +520,7 @@ export default function FeedScreen() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
-        <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>REWND</HandwrittenText>
+        <HandwrittenText size={36} bold style={{ paddingHorizontal: 10 }}>REWIND</HandwrittenText>
         <TouchableOpacity 
           style={styles.searchButton}
           onPress={openSearchModal}
@@ -540,7 +540,7 @@ export default function FeedScreen() {
         color="#CCCCCC"
         style={styles.emptyCameraIcon}
       />
-      <HandwrittenText size={26} bold style={{ paddingHorizontal: 10 }}>No REWNDs yet</HandwrittenText>
+      <HandwrittenText size={26} bold style={{ paddingHorizontal: 10 }}>No REWINDs yet</HandwrittenText>
       <Text style={styles.emptyText}>
         Be the first to capture a moment!
       </Text>
@@ -548,7 +548,7 @@ export default function FeedScreen() {
         style={styles.captureButton}
         onPress={() => router.push('/camera')}
       >
-        <Text style={styles.captureButtonText}>Take a REWND</Text>
+        <Text style={styles.captureButtonText}>Take a REWIND</Text>
       </TouchableOpacity>
     </View>
   );
@@ -643,24 +643,14 @@ export default function FeedScreen() {
               {/* Photo */}
               {selectedPhoto && (
                 <View style={styles.photoContainer}>
-                  {selectedPhoto.photo_style === 'camcorder' ? (
-                    // Camcorder: Show raw image (overlay already baked in)
-                    <Image 
-                      source={{ uri: selectedPhoto.image_url }}
-                      style={styles.camcorderImage}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    // All other filters: Show in Polaroid frame
-                    <PolaroidFrame
-                      imageUri={selectedPhoto.image_url}
-                      caption={selectedPhoto.caption}
-                      date={selectedPhoto.created_at}
-                      showRainbow={true}
-                      width={340}
-                      filterId={selectedPhoto.photo_style as any || 'polaroid'}
-                    />
-                  )}
+                  <PolaroidFrame
+                    imageUri={selectedPhoto.image_url}
+                    caption={selectedPhoto.caption}
+                    date={selectedPhoto.created_at}
+                    showRainbow={true}
+                    width={340}
+                    filterId={selectedPhoto.photo_style as any || 'polaroid'}
+                  />
                 </View>
               )}
 
@@ -864,7 +854,7 @@ export default function FeedScreen() {
               )
             ) : contactUsers.length > 0 ? (
               <View style={styles.searchResultsContainer}>
-                <Text style={styles.searchSectionTitle}>Contacts on REWND</Text>
+                <Text style={styles.searchSectionTitle}>Contacts on REWIND</Text>
                 {contactUsers.map((user) => (
                   <TouchableOpacity
                     key={user.id}
@@ -1347,6 +1337,17 @@ const styles = StyleSheet.create({
   },
   followingButtonText: {
     color: '#666',
+  },
+  vcrContainer: {
+    width: 340,
+    height: 340,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  vcrImage: {
+    width: '100%',
+    height: '100%',
   },
   noResultsContainer: {
     alignItems: 'center',

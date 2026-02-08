@@ -179,7 +179,7 @@ export default function AuthScreen() {
             style={styles.cameraIcon}
           />
           <View style={styles.titleContainer}>
-            <HandwrittenText size={48} bold style={{ textAlign: 'center', width: '100%', paddingHorizontal: 10 }}>REWND</HandwrittenText>
+            <HandwrittenText size={48} bold style={{ textAlign: 'center', width: '100%', paddingHorizontal: 10 }}>REWIND</HandwrittenText>
           </View>
           <Text style={styles.tagline}>Capture nostalgic moments</Text>
         </View>

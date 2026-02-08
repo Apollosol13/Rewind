@@ -40,6 +40,12 @@ export default function CamcorderOverlay({ timestamp = new Date() }: CamcorderOv
           <View style={styles.recDot} />
         </View>
 
+        {/* VCR TAPE REWIND text */}
+        <View style={styles.tapeContainer}>
+          <Text style={styles.tapeText}>VCR TAPE</Text>
+          <Text style={styles.tapeText}>REWIND</Text>
+        </View>
+
         {/* Battery */}
         <View style={styles.batteryContainer}>
           <View style={styles.batteryBody}>
@@ -163,6 +169,22 @@ const styles = StyleSheet.create({
     textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+
+  // VCR TAPE text
+  tapeContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignItems: 'flex-end',
+  },
+  tapeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    lineHeight: 12,
   },
 
   // Battery

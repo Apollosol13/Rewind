@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
-export type PhotoStyle = 'polaroid' | 'vintage' | 'sepia' | 'legacy' | 'film' | 'camcorder';
+export type PhotoStyle = 'polaroid' | 'vintage' | 'sepia' | 'legacy' | 'film';
 
 interface StyleOption {
   id: PhotoStyle;
@@ -47,13 +47,6 @@ const STYLE_OPTIONS: StyleOption[] = [
     icon: 'film', 
     color: '#4D96FF',
     description: 'Clean black & white with balanced contrast and cool tone'
-  },
-  { 
-    id: 'camcorder', 
-    label: 'Camcorder', 
-    icon: 'video.fill', 
-    color: '#9D4EDD',
-    description: '1980s-90s VHS camcorder with scan lines and color bleeding'
   },
 ];
 

@@ -537,7 +537,7 @@ export default function UserProfileScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{photos.length}</Text>
-              <Text style={styles.statLabel}>REWNDs</Text>
+              <Text style={styles.statLabel}>REWINDs</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity 
@@ -698,24 +698,6 @@ export default function UserProfileScreen() {
                           />
                           {/* Apply filter overlays based on photo_style */}
                           <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
-                          
-                          {/* Camcorder UI overlay (REC, corners) */}
-                          {photo.photo_style === 'camcorder' && (
-                            <View style={styles.camcorderThumbnailOverlay}>
-                              {/* Top indicators */}
-                              <View style={styles.camcorderTop}>
-                                <View style={styles.recIndicatorSmall}>
-                                  <Text style={styles.recTextSmall}>REC</Text>
-                                  <View style={styles.recDotSmall} />
-                                </View>
-                              </View>
-                              {/* Frame corners */}
-                              <View style={styles.cornerSmallTL} />
-                              <View style={styles.cornerSmallTR} />
-                              <View style={styles.cornerSmallBL} />
-                              <View style={styles.cornerSmallBR} />
-                            </View>
-                          )}
                         </View>
                         <View style={styles.polaroidCaption}>
                           <HandwrittenText size={14}>
@@ -733,7 +715,7 @@ export default function UserProfileScreen() {
           {photos.length === 0 && (
             <View style={styles.emptyState}>
               <IconSymbol name="camera" size={60} color="#DDD" />
-              <Text style={styles.emptyText}>No REWNDs yet</Text>
+              <Text style={styles.emptyText}>No REWINDs yet</Text>
             </View>
           )}
         </View>
@@ -930,24 +912,14 @@ export default function UserProfileScreen() {
               {/* Photo */}
               {selectedPhoto && (
                 <View style={styles.photoContainer}>
-                  {selectedPhoto.photo_style === 'camcorder' ? (
-                    // Camcorder: Show raw image (overlay already baked in)
-                    <Image 
-                      source={{ uri: selectedPhoto.image_url }}
-                      style={styles.camcorderImage}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    // All other filters: Show in Polaroid frame
-                    <PolaroidFrame
-                      imageUri={selectedPhoto.image_url}
-                      caption={selectedPhoto.caption}
-                      date={selectedPhoto.created_at}
-                      showRainbow={true}
-                      width={300}
-                      filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
-                    />
-                  )}
+                  <PolaroidFrame
+                    imageUri={selectedPhoto.image_url}
+                    caption={selectedPhoto.caption}
+                    date={selectedPhoto.created_at}
+                    showRainbow={true}
+                    width={300}
+                    filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
+                  />
                 </View>
               )}
 
@@ -1726,5 +1698,16 @@ const styles = StyleSheet.create({
   },
   photoWrapper: {
     alignItems: 'center',
+  },
+  vcrContainer: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  vcrImage: {
+    width: '100%',
+    height: '100%',
   },
 });

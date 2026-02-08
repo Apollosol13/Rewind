@@ -29,11 +29,20 @@ export default function RootLayout() {
       console.log('🔥 Warming up AsyncStorage...');
       try {
         // Touch AsyncStorage to ensure it's ready before Supabase tries to use it
-        await AsyncStorage.getItem('app_initialized');
-        await AsyncStorage.setItem('app_initialized', 'true');
+        const warmupTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AsyncStorage warmup timeout')), 3000)
+        );
+        
+        await Promise.race([
+          (async () => {
+            await AsyncStorage.getItem('app_initialized');
+            await AsyncStorage.setItem('app_initialized', 'true');
+          })(),
+          warmupTimeout
+        ]);
         console.log('✅ AsyncStorage ready');
       } catch (error) {
-        console.error('⚠️ AsyncStorage init error:', error);
+        console.error('⚠️ AsyncStorage init error/timeout:', error);
       }
       
       // NOW check auth (after AsyncStorage is warm)
@@ -93,7 +102,7 @@ export default function RootLayout() {
               Alert.alert('Verification Failed', 'Unable to verify your email. Please try again.');
             } else if (session) {
               console.log('✅ Email verified successfully!');
-              Alert.alert('Success', 'Your email has been verified! Welcome to REWND!');
+              Alert.alert('Success', 'Your email has been verified! Welcome to REWIND!');
               router.replace('/(tabs)');
             }
           }
@@ -161,9 +170,9 @@ export default function RootLayout() {
   const checkAuth = async () => {
     console.log('🔍 Checking authentication...');
     try {
-      // Add 10-second timeout to prevent infinite loading
+      // Add 5-second timeout to prevent infinite loading (reduced from 10s)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+        setTimeout(() => reject(new Error('Auth check timeout')), 5000)
       );
       
       const authPromise = supabase.auth.getSession();
@@ -210,7 +219,10 @@ export default function RootLayout() {
       }
     } finally {
       console.log('✅ Auth check finished, setting isLoading to false');
-      setIsLoading(false);
+      // Force set isLoading to false after a slight delay to ensure state update completes
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
     }
   };
 

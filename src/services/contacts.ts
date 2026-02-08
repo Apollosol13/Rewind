@@ -69,7 +69,7 @@ async function getHashedContacts() {
 }
 
 /**
- * Find users on REWND from phone contacts
+ * Find users on REWIND from phone contacts
  */
 export async function findContactsOnApp(currentUserId: string) {
   try {

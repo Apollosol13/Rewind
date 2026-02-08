@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { Photo } from '../config/supabase';
 import { getRelativeTime } from '../utils/dateFormatter';
@@ -99,26 +99,16 @@ export default function PhotoCard({
         </View>
       </View>
 
-      {/* Photo - Conditional rendering based on filter */}
+      {/* Photo */}
       <View style={styles.polaroidContainer}>
-        {photo.photo_style === 'camcorder' ? (
-          // Camcorder: Show raw image (overlay already baked in)
-          <Image 
-            source={{ uri: photo.image_url }}
-            style={styles.camcorderImage}
-            resizeMode="contain"
-          />
-        ) : (
-          // All other filters: Show in Polaroid frame
-          <PolaroidFrame
-            imageUri={photo.image_url}
-            caption={photo.caption}
-            date={photo.created_at}
-            showRainbow={true}
-            width={340}
-            filterId={photo.photo_style as any || 'polaroid'}
-          />
-        )}
+        <PolaroidFrame
+          imageUri={photo.image_url}
+          caption={photo.caption}
+          date={photo.created_at}
+          showRainbow={true}
+          width={340}
+          filterId={photo.photo_style as any || 'polaroid'}
+        />
       </View>
 
       {/* Action Buttons */}
@@ -259,6 +249,17 @@ const styles = StyleSheet.create({
   polaroidContainer: {
     alignItems: 'center',
     width: '100%',
+  },
+  vcrContainer: {
+    width: 340,
+    height: 340,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  vcrImage: {
+    width: '100%',
+    height: '100%',
   },
   camcorderImage: {
     width: 340,

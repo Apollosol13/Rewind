@@ -434,7 +434,7 @@ export default function ProfileScreen() {
       // Share the image with message
       await Share.share({
         url: uri,
-        message: 'Check out my REWND! 📸',
+        message: 'Check out my REWIND! 📸',
       });
 
     } catch (error) {
@@ -557,7 +557,7 @@ export default function ProfileScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Delete REWND'],
+          options: ['Cancel', 'Delete REWIND'],
           destructiveButtonIndex: 1,
           cancelButtonIndex: 0,
         },
@@ -575,7 +575,7 @@ export default function ProfileScreen() {
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Delete REWND',
+            text: 'Delete REWIND',
             style: 'destructive',
             onPress: () => confirmDelete(selectedPhoto.id),
           },
@@ -586,7 +586,7 @@ export default function ProfileScreen() {
 
   const confirmDelete = (photoId: string) => {
     Alert.alert(
-      'Delete REWND',
+      'Delete REWIND',
       'Are you sure? This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -653,7 +653,7 @@ export default function ProfileScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{photos.length}</Text>
-              <Text style={styles.statLabel}>REWNDs</Text>
+              <Text style={styles.statLabel}>REWINDs</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity 
@@ -781,24 +781,6 @@ export default function ProfileScreen() {
                         />
                         {/* Apply filter overlays based on photo_style */}
                         <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
-                        
-                        {/* Camcorder UI overlay (REC, corners) */}
-                        {photo.photo_style === 'camcorder' && (
-                          <View style={styles.camcorderThumbnailOverlay}>
-                            {/* Top indicators */}
-                            <View style={styles.camcorderTop}>
-                              <View style={styles.recIndicatorSmall}>
-                                <Text style={styles.recTextSmall}>REC</Text>
-                                <View style={styles.recDotSmall} />
-                              </View>
-                            </View>
-                            {/* Frame corners */}
-                            <View style={styles.cornerSmallTL} />
-                            <View style={styles.cornerSmallTR} />
-                            <View style={styles.cornerSmallBL} />
-                            <View style={styles.cornerSmallBR} />
-                          </View>
-                        )}
                       </View>
                       <View style={styles.polaroidCaption}>
                         <HandwrittenText size={14}>
@@ -871,7 +853,7 @@ export default function ProfileScreen() {
           {photos.length === 0 && (
             <View style={styles.emptyState}>
               <IconSymbol name="camera" size={60} color="#DDD" />
-              <Text style={styles.emptyText}>No REWNDs yet</Text>
+              <Text style={styles.emptyText}>No REWINDs yet</Text>
               <Text style={styles.emptySubtext}>Start capturing memories!</Text>
             </View>
           )}
@@ -1253,25 +1235,15 @@ export default function ProfileScreen() {
                     collapsable={false} 
                     style={styles.storyContainer}
                   >
-                    {selectedPhoto.photo_style === 'camcorder' ? (
-                      // Camcorder: Show raw image (overlay already baked in)
-                      <Image 
-                        source={{ uri: selectedPhoto.image_url }}
-                        style={styles.camcorderImage}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      // All other filters: Show in Polaroid frame
-                      <PolaroidFrame
-                        imageUri={selectedPhoto.image_url}
-                        caption={selectedPhoto.caption}
-                        date={selectedPhoto.created_at}
-                        showRainbow={true}
-                        width={300}
-                        filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
-                        showWatermark={showWatermark}
-                      />
-                    )}
+                    <PolaroidFrame
+                      imageUri={selectedPhoto.image_url}
+                      caption={selectedPhoto.caption}
+                      date={selectedPhoto.created_at}
+                      showRainbow={true}
+                      width={300}
+                      filterId={(selectedPhoto.photo_style as any) || 'polaroid'}
+                      showWatermark={showWatermark}
+                    />
                     
                     {/* Share Button - Sticky Note on Cork Board (hidden when capturing for share) */}
                     {!showWatermark && (
@@ -2261,5 +2233,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 4,
+  },
+  vcrModalContainer: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  vcrFullContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  vcrModalImage: {
+    width: '90%',
+    aspectRatio: 1,
+    borderRadius: 8,
+  },
+  shareButtonVCR: {
+    backgroundColor: '#EF4249',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginTop: 20,
+    borderRadius: 2,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });

@@ -319,7 +319,7 @@ export default function CameraScreen() {
           try {
             const { data: userData } = await supabase
               .from('users')
-              .select('username')
+              .select('username, push_token')
               .eq('id', user.id)
               .single();
 
@@ -330,17 +330,36 @@ export default function CameraScreen() {
                 .eq('following_id', user.id);
 
               if (followers && followers.length > 0) {
-                console.log(`📸 Notifying ${followers.length} followers about new post from @${userData.username}`);
+                console.log(`📸 Found ${followers.length} followers for @${userData.username}`);
+                console.log(`👤 Current user ID: ${user.id}`);
+                console.log(`📋 Follower IDs:`, followers.map(f => f.follower_id));
+                console.log(`🔑 Current user push token: ${userData.push_token}`);
                 
                 for (const follower of followers) {
-                  // Skip if follower is the poster themselves (no self-notifications!)
+                  // IMPORTANT: Skip if follower is the poster themselves (no self-notifications!)
                   if (follower.follower_id === user.id) {
-                    console.log('⚠️ Skipping self-notification');
+                    console.log(`⚠️ Skipping self-notification for user ${user.id}`);
+                    continue;
+                  }
+
+                  // ADDITIONAL CHECK: Skip if follower has the same push token (same device/test account)
+                  const { data: followerData } = await supabase
+                    .from('users')
+                    .select('push_token, username')
+                    .eq('id', follower.follower_id)
+                    .single();
+
+                  if (followerData && followerData.push_token === userData.push_token) {
+                    console.log(`⚠️ Skipping notification - same device/token as poster (@${followerData.username})`);
                     continue;
                   }
                   
+                  console.log(`📤 Checking notification preferences for follower: ${follower.follower_id}`);
                   const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
+                  console.log(`   Wants notification: ${wantsNotif}`);
+                  
                   if (wantsNotif) {
+                    console.log(`🔔 Sending notification to follower: ${follower.follower_id}`);
                     await sendFriendPostedNotification(follower.follower_id, userData.username, photo.id);
                   }
                 }
@@ -395,7 +414,7 @@ export default function CameraScreen() {
               </TouchableOpacity>
           
           <View style={styles.previewHeader}>
-            <HandwrittenText size={28} bold style={{ paddingHorizontal: 10 }}>Your REWND</HandwrittenText>
+            <HandwrittenText size={28} bold style={{ paddingHorizontal: 10 }}>Your REWIND</HandwrittenText>
           </View>
 
           <View style={styles.previewContent}>
@@ -477,9 +496,9 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>✕</Text>
           </TouchableOpacity>
 
-          {/* REWND Branding */}
+          {/* REWIND Branding */}
           <View style={styles.brandingTop}>
-            <HandwrittenText size={24} bold style={styles.brandText}>REWND</HandwrittenText>
+            <HandwrittenText size={24} bold style={styles.brandText}>REWIND</HandwrittenText>
           </View>
 
           {/* Flash Toggle */}

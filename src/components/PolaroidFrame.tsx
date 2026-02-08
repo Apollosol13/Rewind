@@ -80,7 +80,7 @@ export default function PolaroidFrame({
         ) : null}
         {showWatermark && (
           <HandwrittenText size={14} style={styles.watermark}>
-            REWND
+            REWIND
           </HandwrittenText>
         )}
       </View>

@@ -170,9 +170,9 @@ export default function RootLayout() {
   const checkAuth = async () => {
     console.log('🔍 Checking authentication...');
     try {
-      // Add 5-second timeout to prevent infinite loading (reduced from 10s)
+      // Add 2-second timeout to prevent infinite loading
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+        setTimeout(() => reject(new Error('Auth check timeout')), 2000)
       );
       
       const authPromise = supabase.auth.getSession();
@@ -219,10 +219,9 @@ export default function RootLayout() {
       }
     } finally {
       console.log('✅ Auth check finished, setting isLoading to false');
-      // Force set isLoading to false after a slight delay to ensure state update completes
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 100);
+      console.log('📊 Current auth state:', isAuthenticatedRef.current);
+      // Immediately set isLoading to false
+      setIsLoading(false);
     }
   };
 

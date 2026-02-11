@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "REWIND",
+    "slug": "REWND",
+    "version": "1.1.2",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "rewind",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "owner": "bstudenc",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rewindapp.ios",
+      "buildNumber": "55",
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "NSCameraUsageDescription": "Rewind needs access to your camera to capture your daily moments.",
+        "NSPhotoLibraryUsageDescription": "Rewind needs access to your photo library to save your Rewinds.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.rewind.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#EF4249",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-apple-authentication",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#EF4249",
+          "dark": {
+            "backgroundColor": "#EF4249"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a08f49c7-53f3-450d-a487-797c2c32f224"
+      },
+      "supabaseUrl": "https://rfbbrzenglpgqvhbhpbu.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmYmJyemVuZ2xwZ3F2aGJocGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNTY2NjUsImV4cCI6MjA4MzczMjY2NX0.qcskts_pVdJTH1VpQKHjVBkDNxwBOq2lPpLQ0qj0DDE"
+    }
+  }
+}

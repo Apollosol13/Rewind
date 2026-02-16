@@ -1,10 +1,23 @@
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { HapticTab } from '../../components/haptic-tab';
-import { EventEmitter } from 'react-native';
 
-// Create event emitter for tab refresh
-export const tabRefreshEmitter = new EventEmitter();
+// Simple event emitter for tab refresh
+class SimpleEmitter {
+  private listeners: Record<string, Array<() => void>> = {};
+
+  addListener(event: string, callback: () => void) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+    return { remove: () => { this.listeners[event] = this.listeners[event].filter(cb => cb !== callback); } };
+  }
+
+  emit(event: string) {
+    (this.listeners[event] || []).forEach(cb => cb());
+  }
+}
+
+export const tabRefreshEmitter = new SimpleEmitter();
 
 export default function TabLayout() {
   const pathname = usePathname();
@@ -45,7 +58,7 @@ export default function TabLayout() {
         listeners={{
           tabPress: (e) => {
             // If already on feed tab, emit refresh event
-            if (pathname === '/(tabs)') {
+            if (pathname === '/' || pathname === '/(tabs)' || pathname === '/(tabs)/index' || pathname === '/index') {
               tabRefreshEmitter.emit('refreshFeed');
             }
           },

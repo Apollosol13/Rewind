@@ -71,13 +71,16 @@ export default function FeedScreen() {
     }
   }, [currentUserId]);
 
+  // Ref to hold the latest onRefresh, updated after it's defined below
+  const onRefreshRef = useRef<() => void>(() => {});
+
   // Listen for tab press to refresh feed
   useEffect(() => {
     const subscription = tabRefreshEmitter.addListener('refreshFeed', () => {
       // Scroll to top
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       // Refresh feed
-      onRefresh();
+      onRefreshRef.current();
     });
 
     return () => subscription.remove();
@@ -148,6 +151,9 @@ export default function FeedScreen() {
     await loadFeed();
     setRefreshing(false);
   };
+
+  // Keep ref in sync so the tab-press listener always calls the latest version
+  onRefreshRef.current = onRefresh;
 
   const handlePhotoLike = async (photoId: string) => {
     if (!currentUserId) return;

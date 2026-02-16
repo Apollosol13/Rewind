@@ -420,7 +420,7 @@ export default function CameraScreen() {
 
           <ScrollView 
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 40 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -449,29 +449,29 @@ export default function CameraScreen() {
                 />
               </View>
             </View>
+
+            <View style={styles.previewActions}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.retakeButton]} 
+                onPress={retakePicture}
+                disabled={uploading}
+              >
+                <Text style={styles.actionButtonText}>Retake</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.shareButton]} 
+                onPress={handleUpload}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.actionButtonText}>Share 📸</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </ScrollView>
-
-          <View style={styles.previewActions}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.retakeButton]} 
-              onPress={retakePicture}
-              disabled={uploading}
-            >
-              <Text style={styles.actionButtonText}>Retake</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.shareButton]} 
-              onPress={handleUpload}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.actionButtonText}>Share 📸</Text>
-              )}
-            </TouchableOpacity>
-          </View>
             </>
           )}
         </View>
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 15,
     paddingHorizontal: 40,
-    marginTop: 30,
+    marginTop: 10,
   },
   actionButton: {
     flex: 1,

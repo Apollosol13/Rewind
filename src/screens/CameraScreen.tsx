@@ -9,6 +9,7 @@ import {
     Keyboard,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -417,34 +418,38 @@ export default function CameraScreen() {
             <HandwrittenText size={28} bold style={{ paddingHorizontal: 10 }}>Your REWIND</HandwrittenText>
           </View>
 
-          <View style={styles.previewContent}>
-            <View style={styles.previewImageContainer} ref={previewRef} collapsable={false}>
-              <PolaroidFrame
-                imageUri={capturedImage}
-                caption={caption}
-                date={new Date()}
-                showRainbow={true}
-                width={340}
-                filterId={photoStyle}
-                showOverlay={true}
-              />
-            </View>
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.previewContent}>
+              <View style={styles.previewImageContainer} ref={previewRef} collapsable={false}>
+                <PolaroidFrame
+                  imageUri={capturedImage}
+                  caption={caption}
+                  date={new Date()}
+                  showRainbow={true}
+                  width={340}
+                  filterId={photoStyle}
+                  showOverlay={true}
+                />
+              </View>
 
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.captionContainer}
-            >
-              <TextInput
-                style={styles.captionInput}
-                placeholder="Add a caption..."
-                placeholderTextColor="#999"
-                value={caption}
-                onChangeText={setCaption}
-                maxLength={100}
-                multiline
-              />
-            </KeyboardAvoidingView>
-          </View>
+              <View style={styles.captionContainer}>
+                <TextInput
+                  style={styles.captionInput}
+                  placeholder="Add a caption..."
+                  placeholderTextColor="#999"
+                  value={caption}
+                  onChangeText={setCaption}
+                  maxLength={100}
+                  multiline
+                />
+              </View>
+            </View>
+          </ScrollView>
 
           <View style={styles.previewActions}>
             <TouchableOpacity 

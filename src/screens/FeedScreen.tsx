@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -37,6 +37,7 @@ import {
 } from '../services/photos';
 import { reportComment, reportPhoto, ReportReason } from '../services/reports';
 import { getSuggestedUsers, searchUsers } from '../services/search';
+import { tabRefreshEmitter } from '../../app/(tabs)/_layout';
 
 export default function FeedScreen() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -58,6 +59,7 @@ export default function FeedScreen() {
   const [contactsLoading, setContactsLoading] = useState(false);
   const [userFollowStatus, setUserFollowStatus] = useState<Record<string, boolean>>({});
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     loadCurrentUser();
@@ -68,6 +70,18 @@ export default function FeedScreen() {
       loadFeed();
     }
   }, [currentUserId]);
+
+  // Listen for tab press to refresh feed
+  useEffect(() => {
+    const subscription = tabRefreshEmitter.addListener('refreshFeed', () => {
+      // Scroll to top
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      // Refresh feed
+      onRefresh();
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   // Reload feed when screen comes into focus (syncs comments/likes from other screens)
   useFocusEffect(
@@ -567,6 +581,7 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
+        ref={flatListRef}
         data={photos}
         renderItem={({ item }) => (
           <PhotoCard 

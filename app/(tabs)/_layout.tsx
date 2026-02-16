@@ -1,8 +1,14 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { HapticTab } from '../../components/haptic-tab';
+import { EventEmitter } from 'react-native';
+
+// Create event emitter for tab refresh
+export const tabRefreshEmitter = new EventEmitter();
 
 export default function TabLayout() {
+  const pathname = usePathname();
+
   return (
     <Tabs
       screenOptions={{
@@ -35,6 +41,14 @@ export default function TabLayout() {
               color={color} 
             />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // If already on feed tab, emit refresh event
+            if (pathname === '/(tabs)') {
+              tabRefreshEmitter.emit('refreshFeed');
+            }
+          },
         }}
       />
       <Tabs.Screen

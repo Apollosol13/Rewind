@@ -34,11 +34,21 @@ export async function createPolaroidVideo(videoBuffer, caption, date) {
       year: 'numeric',
     });
 
+    // Sanitize caption for FFmpeg (escape special characters)
+    const safeCaption = (caption || '').replace(/[':]/g, '').replace(/\\/g, '').substring(0, 40);
+
+    // Find the font path (DejaVu Sans is installed via nixpacks)
+    const fontPath = '/nix/store';
+    const fontFile = 'DejaVuSans.ttf';
+
     // FFmpeg filter chain for polaroid look:
     // 1. Crop to square (center crop)
     // 2. Scale to 540x540
     // 3. Pad with white: 40px sides, 50px top, 120px bottom (polaroid proportions)
     // 4. Rainbow stripe (6 colored boxes at top center)
+    // 5. Caption text (centered in bottom white area)
+    // 6. Date text (bottom right)
+    // 7. REWIND watermark (bottom left)
     const filters = [
       'crop=min(iw\\,ih):min(iw\\,ih)',
       'scale=540:540',
@@ -50,6 +60,23 @@ export async function createPolaroidVideo(videoBuffer, caption, date) {
       'drawbox=x=330:y=15:w=20:h=10:color=0x4D96FF:t=fill',
       'drawbox=x=350:y=15:w=20:h=10:color=0x9D84B7:t=fill',
     ];
+
+    // Add caption text if provided
+    if (safeCaption) {
+      filters.push(
+        `drawtext=text='${safeCaption}':fontsize=22:fontcolor=0x333333:x=(w-text_w)/2:y=610:font='DejaVu Sans'`
+      );
+    }
+
+    // Add date text (bottom right of white area)
+    filters.push(
+      `drawtext=text='${dateStr}':fontsize=16:fontcolor=0x999999:x=w-text_w-45:y=670:font='DejaVu Sans'`
+    );
+
+    // Add REWIND watermark (bottom left of white area)
+    filters.push(
+      `drawtext=text='REWIND':fontsize=16:fontcolor=0xBBBBBB:x=45:y=670:font='DejaVu Sans Bold'`
+    );
 
     const filterStr = filters.join(',');
 

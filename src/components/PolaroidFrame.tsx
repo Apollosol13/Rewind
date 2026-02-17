@@ -36,7 +36,7 @@ export default function PolaroidFrame({
   const imageSize = width - 40;
   const photoDate = typeof date === 'string' ? new Date(date) : date;
   const isVideo = mediaType === 'video' && videoUri;
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   return (
     <View style={[styles.polaroidFrame, { width }]}>
@@ -66,6 +66,13 @@ export default function PolaroidFrame({
               shouldPlay
               isMuted={isMuted}
             />
+            <TouchableOpacity
+              style={styles.soundBadge}
+              onPress={() => setIsMuted(!isMuted)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.soundBadgeText}>{isMuted ? '🔇' : '🔊'}</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <Image 
@@ -181,18 +188,18 @@ const styles = StyleSheet.create({
     color: '#000000',
     opacity: 0.7,
   },
-  videoIndicator: {
+  soundBadge: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 12,
-    width: 28,
-    height: 28,
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 14,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoIndicatorText: {
-    fontSize: 14,
+  soundBadgeText: {
+    fontSize: 16,
   },
 });

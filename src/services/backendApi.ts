@@ -72,6 +72,58 @@ export async function uploadPhotoToBackend(
 }
 
 /**
+ * Process a video on the backend to create a polaroid-framed version.
+ * Called after uploading the raw video to Supabase.
+ */
+export async function processVideoPolaroid(
+  videoUrl: string,
+  photoId: string,
+  caption?: string,
+  date?: string
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error('No authentication token available');
+    }
+
+    console.log('🎬 Requesting polaroid video processing from backend...');
+
+    const response = await fetch(`${BACKEND_URL}/api/photos/process-video`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        videoUrl,
+        photoId,
+        caption: caption || '',
+        date: date || new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Video processing failed:', response.status, errorText);
+      throw new Error(`Video processing failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Polaroid video processed:', result.polaroidVideoUrl?.substring(0, 60));
+
+    return {
+      polaroidVideoUrl: result.polaroidVideoUrl,
+      error: null,
+    };
+  } catch (error) {
+    console.error('❌ Error processing polaroid video:', error);
+    return { polaroidVideoUrl: null, error };
+  }
+}
+
+/**
  * Test backend connection
  */
 export async function testBackendConnection() {

@@ -27,7 +27,7 @@ import PolaroidFrame from '../components/PolaroidFrame';
 import StyleDial, { PhotoStyle } from '../components/StyleDial';
 import { supabase } from '../config/supabase';
 import { getCurrentUser } from '../services/auth';
-import { uploadPhotoToBackend } from '../services/backendApi';
+import { uploadPhotoToBackend, processVideoPolaroid } from '../services/backendApi';
 import { canUserPost, getTimeUntilNextPost, recordDailyPost } from '../services/dailyPost';
 import { shouldSendNotification } from '../services/notificationPreferences';
 import { scheduleRandomDailyNotifications, sendFriendPostedNotification } from '../services/notifications';
@@ -344,6 +344,20 @@ export default function CameraScreen() {
         }
 
         console.log('✅ Video uploaded! ID:', photo.id);
+
+        // Process polaroid-framed version on the backend (fire-and-forget for faster UX)
+        processVideoPolaroid(
+          photo.video_url,
+          photo.id,
+          caption,
+          new Date().toISOString()
+        ).then(({ polaroidVideoUrl, error: polaroidError }) => {
+          if (polaroidError) {
+            console.warn('⚠️ Polaroid video processing failed (will retry on share):', polaroidError);
+          } else {
+            console.log('✅ Polaroid video ready:', polaroidVideoUrl?.substring(0, 60));
+          }
+        });
 
         // Record daily post
         await recordDailyPost(user.id, photo.id);

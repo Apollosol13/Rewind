@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { createPolaroidVideo } from '../utils/videoCompositor';
+import { processVideoPolaroid } from '../services/backendApi';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActionSheetIOS,
@@ -418,22 +418,32 @@ export default function ProfileScreen() {
     if (!selectedPhoto) return;
 
     try {
-      // For videos, create a polaroid-framed version and share
+      // For videos, use pre-rendered polaroid version or fall back to raw video
       if (selectedPhoto.media_type === 'video' && selectedPhoto.video_url) {
-        // Download the video first
-        const localUri = FileSystem.cacheDirectory + `rewind_video_${Date.now()}.mp4`;
-        const download = await FileSystem.downloadAsync(selectedPhoto.video_url, localUri);
+        // Use the pre-rendered polaroid video if available
+        const videoUrlToShare = selectedPhoto.polaroid_video_url || selectedPhoto.video_url;
 
-        // Try to create polaroid-framed version with FFmpeg
-        const polaroidVideo = await createPolaroidVideo(
-          download.uri,
-          selectedPhoto.caption,
-          new Date(selectedPhoto.created_at),
-        );
+        // If no polaroid version exists yet, try to process it on-the-fly
+        if (!selectedPhoto.polaroid_video_url) {
+          console.log('⚠️ No polaroid video cached, requesting processing...');
+          const { polaroidVideoUrl } = await processVideoPolaroid(
+            selectedPhoto.video_url,
+            selectedPhoto.id,
+            selectedPhoto.caption,
+            selectedPhoto.created_at
+          );
+          if (polaroidVideoUrl) {
+            // Update local state so it's cached for next time
+            selectedPhoto.polaroid_video_url = polaroidVideoUrl;
+          }
+        }
 
-        // Share the polaroid version, or fall back to raw video
+        const finalUrl = selectedPhoto.polaroid_video_url || selectedPhoto.video_url;
+        const localUri = FileSystem.cacheDirectory + `rewind_share_${Date.now()}.mp4`;
+        const download = await FileSystem.downloadAsync(finalUrl, localUri);
+
         await Share.share({
-          url: polaroidVideo || download.uri,
+          url: download.uri,
           message: 'Check out my REWIND! 📸',
         });
         return;
@@ -457,7 +467,7 @@ export default function ProfileScreen() {
         message: 'Check out my REWIND! 📸',
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sharing:', error);
       setShowWatermark(false);
       

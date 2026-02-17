@@ -29,6 +29,7 @@ export interface Photo {
   user_id: string;
   image_url: string;
   video_url?: string;
+  polaroid_video_url?: string;
   media_type?: 'photo' | 'video';
   caption?: string;
   prompt_time: string;

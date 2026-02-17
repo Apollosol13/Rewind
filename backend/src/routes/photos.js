@@ -2,7 +2,8 @@ import express from 'express';
 import { uploadSinglePhoto, handleUploadError } from '../middleware/upload.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { processPhotoForUpload } from '../services/imageProcessor.js';
-import { uploadImage, savePhotoMetadata } from '../services/supabase.js';
+import { createPolaroidVideo } from '../services/videoProcessor.js';
+import { uploadImage, uploadVideo, savePhotoMetadata, updatePhotoRecord } from '../services/supabase.js';
 
 const router = express.Router();
 
@@ -84,6 +85,73 @@ router.post('/upload', authenticateUser, uploadSinglePhoto, handleUploadError, a
     res.status(500).json({
       error: 'Upload failed',
       message: error.message || 'Failed to process and upload photo',
+    });
+  }
+});
+
+/**
+ * POST /api/photos/process-video
+ * Process a video to add polaroid framing (server-side FFmpeg)
+ * Called by the client after uploading raw video to Supabase
+ * Body: { videoUrl: string, photoId: string }
+ */
+router.post('/process-video', authenticateUser, async (req, res) => {
+  try {
+    const { videoUrl, photoId, caption, date } = req.body;
+
+    if (!videoUrl || !photoId) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'videoUrl and photoId are required',
+      });
+    }
+
+    console.log(`🎬 Processing polaroid video for photo: ${photoId}`);
+    console.log(`   Video URL: ${videoUrl.substring(0, 80)}...`);
+
+    // Download the raw video from Supabase Storage
+    const videoResponse = await fetch(videoUrl);
+    if (!videoResponse.ok) {
+      throw new Error(`Failed to download video: ${videoResponse.status}`);
+    }
+
+    const videoArrayBuffer = await videoResponse.arrayBuffer();
+    const videoBuffer = Buffer.from(videoArrayBuffer);
+    console.log(`   Downloaded video: ${Math.round(videoBuffer.length / 1024)}KB`);
+
+    // Process with FFmpeg to add polaroid frame
+    const polaroidBuffer = await createPolaroidVideo(
+      videoBuffer,
+      caption,
+      date ? new Date(date) : new Date()
+    );
+
+    // Upload the polaroid video to Supabase Storage
+    const polaroidUpload = await uploadVideo(
+      polaroidBuffer,
+      'rewind-photos',
+      'videos',
+      `${req.user.id}_${Date.now()}_polaroid.mp4`
+    );
+
+    // Update the photo record with the polaroid video URL
+    const updatedPhoto = await updatePhotoRecord(photoId, {
+      polaroid_video_url: polaroidUpload.url,
+    });
+
+    console.log(`✅ Polaroid video processed and saved for photo: ${photoId}`);
+
+    res.status(200).json({
+      success: true,
+      polaroidVideoUrl: polaroidUpload.url,
+      photo: updatedPhoto,
+    });
+  } catch (error) {
+    console.error('❌ Video processing failed:', error);
+
+    res.status(500).json({
+      error: 'Video processing failed',
+      message: error.message || 'Failed to create polaroid video',
     });
   }
 });

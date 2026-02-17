@@ -104,6 +104,84 @@ export async function savePhotoMetadata(photoData) {
 }
 
 /**
+ * Upload video to Supabase Storage
+ * @param {Buffer} videoBuffer - Video buffer
+ * @param {string} bucket - Storage bucket name
+ * @param {string} folder - Folder within bucket
+ * @param {string} filename - Filename
+ * @returns {Promise<Object>} - Upload result with URL
+ */
+export async function uploadVideo(videoBuffer, bucket = 'rewind-photos', folder = 'videos', filename = null) {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  try {
+    const uniqueFilename = filename || `polaroid_${Date.now()}.mp4`;
+    const filePath = `${folder}/${uniqueFilename}`;
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, videoBuffer, {
+        contentType: 'video/mp4',
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('❌ Supabase video upload error:', error);
+      throw error;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    console.log(`✅ Video uploaded to Supabase: ${filePath}`);
+
+    return {
+      path: data.path,
+      url: urlData.publicUrl,
+      bucket,
+    };
+  } catch (error) {
+    console.error('❌ Error uploading video:', error);
+    throw new Error('Failed to upload video to storage');
+  }
+}
+
+/**
+ * Update photo record in database
+ * @param {string} photoId - Photo ID to update
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object>} - Updated photo record
+ */
+export async function updatePhotoRecord(photoId, updates) {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('photos')
+      .update(updates)
+      .eq('id', photoId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Database update error:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating photo record:', error);
+    throw new Error('Failed to update photo record');
+  }
+}
+
+/**
  * Delete image from Supabase Storage
  * @param {string} filePath - File path in storage
  * @param {string} bucket - Storage bucket name
@@ -155,7 +233,9 @@ export async function verifyAuthToken(token) {
 export default {
   supabase,
   uploadImage,
+  uploadVideo,
   savePhotoMetadata,
+  updatePhotoRecord,
   deleteImage,
   verifyAuthToken,
 };

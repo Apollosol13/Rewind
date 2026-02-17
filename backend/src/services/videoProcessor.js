@@ -2,7 +2,11 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { writeFile, unlink, mkdtemp, readFile } from 'fs/promises';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const execAsync = promisify(exec);
 
@@ -37,22 +41,22 @@ export async function createPolaroidVideo(videoBuffer, caption, date) {
     // Sanitize caption for FFmpeg (escape special characters)
     const safeCaption = (caption || '').replace(/[':]/g, '').replace(/\\/g, '').substring(0, 40);
 
-    // Find the font path (DejaVu Sans is installed via nixpacks)
-    const fontPath = '/nix/store';
-    const fontFile = 'DejaVuSans.ttf';
+    // Font paths (Caveat handwriting font bundled in repo)
+    const fontRegular = join(__dirname, '..', 'fonts', 'Caveat-Regular.ttf');
+    const fontBold = join(__dirname, '..', 'fonts', 'Caveat-Bold.ttf');
 
-    // FFmpeg filter chain for polaroid look:
+    // FFmpeg filter chain for polaroid look (matching photo share format):
     // 1. Crop to square (center crop)
     // 2. Scale to 540x540
-    // 3. Pad with white: 40px sides, 50px top, 120px bottom (polaroid proportions)
+    // 3. Pad with white: 40px sides, 50px top, 140px bottom (more room for text)
     // 4. Rainbow stripe (6 colored boxes at top center)
-    // 5. Caption text (centered in bottom white area)
-    // 6. Date text (bottom right)
-    // 7. REWIND watermark (bottom left)
+    // 5. Date text (left side, below image - handwriting style)
+    // 6. Caption text (left side, below date - larger handwriting)
+    // 7. REWIND watermark (right side, aligned with caption)
     const filters = [
       'crop=min(iw\\,ih):min(iw\\,ih)',
       'scale=540:540',
-      'pad=620:710:40:50:white',
+      'pad=620:740:40:50:white',
       'drawbox=x=250:y=15:w=20:h=10:color=0xFF6B6B:t=fill',
       'drawbox=x=270:y=15:w=20:h=10:color=0xFFA500:t=fill',
       'drawbox=x=290:y=15:w=20:h=10:color=0xFFD93D:t=fill',
@@ -61,21 +65,21 @@ export async function createPolaroidVideo(videoBuffer, caption, date) {
       'drawbox=x=350:y=15:w=20:h=10:color=0x9D84B7:t=fill',
     ];
 
-    // Add caption text if provided
+    // Date text (left side, below image - handwriting style)
+    filters.push(
+      `drawtext=text='${dateStr}':fontfile='${fontRegular}':fontsize=28:fontcolor=0x333333:x=50:y=610`
+    );
+
+    // Caption text (left side, below date - larger handwriting)
     if (safeCaption) {
       filters.push(
-        `drawtext=text='${safeCaption}':fontsize=22:fontcolor=0x333333:x=(w-text_w)/2:y=610:font='DejaVu Sans'`
+        `drawtext=text='${safeCaption}':fontfile='${fontRegular}':fontsize=36:fontcolor=0x333333:x=50:y=660`
       );
     }
 
-    // Add date text (bottom right of white area)
+    // REWIND watermark (right side, aligned with caption area)
     filters.push(
-      `drawtext=text='${dateStr}':fontsize=16:fontcolor=0x999999:x=w-text_w-45:y=670:font='DejaVu Sans'`
-    );
-
-    // Add REWIND watermark (bottom left of white area)
-    filters.push(
-      `drawtext=text='REWIND':fontsize=16:fontcolor=0xBBBBBB:x=45:y=670:font='DejaVu Sans Bold'`
+      `drawtext=text='REWIND':fontfile='${fontBold}':fontsize=28:fontcolor=0x333333:x=w-text_w-50:y=700`
     );
 
     const filterStr = filters.join(',');

@@ -1,5 +1,7 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { createPolaroidVideo } from '../utils/videoCompositor';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActionSheetIOS,
@@ -413,40 +415,57 @@ export default function ProfileScreen() {
   };
 
   const handleSharePhoto = async () => {
-    if (!polaroidRef.current) return;
+    if (!selectedPhoto) return;
 
     try {
-      // Show watermark
-      setShowWatermark(true);
+      // For videos, create a polaroid-framed version and share
+      if (selectedPhoto.media_type === 'video' && selectedPhoto.video_url) {
+        // Download the video first
+        const localUri = FileSystem.cacheDirectory + `rewind_video_${Date.now()}.mp4`;
+        const download = await FileSystem.downloadAsync(selectedPhoto.video_url, localUri);
+
+        // Try to create polaroid-framed version with FFmpeg
+        const polaroidVideo = await createPolaroidVideo(
+          download.uri,
+          selectedPhoto.caption,
+          new Date(selectedPhoto.created_at),
+        );
+
+        // Share the polaroid version, or fall back to raw video
+        await Share.share({
+          url: polaroidVideo || download.uri,
+          message: 'Check out my REWIND! 📸',
+        });
+        return;
+      }
+
+      // For photos, capture the Polaroid frame as an image
+      if (!polaroidRef.current) return;
       
-      // Wait a brief moment for watermark to render
+      setShowWatermark(true);
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Capture the Polaroid as an image with watermark
       const uri = await captureRef(polaroidRef.current, {
         format: 'png',
         quality: 1,
       });
 
-      // Hide watermark
       setShowWatermark(false);
 
-      // Share the image with message
       await Share.share({
         url: uri,
         message: 'Check out my REWIND! 📸',
       });
 
     } catch (error) {
-      console.error('Error sharing photo:', error);
-      setShowWatermark(false); // Make sure to hide watermark on error
+      console.error('Error sharing:', error);
+      setShowWatermark(false);
       
-      // Check if user cancelled
       if (error.message && error.message.includes('cancelled')) {
-        return; // User cancelled, no need to show error
+        return;
       }
       
-      Alert.alert('Error', 'Failed to share photo. Please try again.');
+      Alert.alert('Error', 'Failed to share. Please try again.');
     }
   };
 
@@ -781,6 +800,11 @@ export default function ProfileScreen() {
                         />
                         {/* Apply filter overlays based on photo_style */}
                         <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
+                        {photo.media_type === 'video' && (
+                          <View style={styles.videoGridBadge}>
+                            <Text style={styles.videoGridBadgeText}>▶</Text>
+                          </View>
+                        )}
                       </View>
                       <View style={styles.polaroidCaption}>
                         <HandwrittenText size={14}>
@@ -1237,6 +1261,8 @@ export default function ProfileScreen() {
                   >
                     <PolaroidFrame
                       imageUri={selectedPhoto.image_url}
+                      videoUri={selectedPhoto.video_url}
+                      mediaType={selectedPhoto.media_type || 'photo'}
                       caption={selectedPhoto.caption}
                       date={selectedPhoto.created_at}
                       showRainbow={true}
@@ -1585,6 +1611,22 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     overflow: 'hidden',
+  },
+  videoGridBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 10,
+    width: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoGridBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    marginLeft: 2,
   },
   polaroidImage: {
     width: '100%',

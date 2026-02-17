@@ -99,10 +99,12 @@ export default function PhotoCard({
         </View>
       </View>
 
-      {/* Photo */}
+      {/* Photo or Video */}
       <View style={styles.polaroidContainer}>
         <PolaroidFrame
           imageUri={photo.image_url}
+          videoUri={photo.video_url}
+          mediaType={photo.media_type || 'photo'}
           caption={photo.caption}
           date={photo.created_at}
           showRainbow={true}

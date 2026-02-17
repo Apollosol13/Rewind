@@ -64,12 +64,29 @@ export default function RootLayout() {
       console.log('📱 Deep link received:', url);
 
       // Check if it's an auth callback
-      if (url.includes('rewind://auth/callback')) {
+      if (url.includes('rewind://auth/callback') || url.includes('rewind://auth')) {
         try {
           const urlObj = new URL(url);
           const tokenHash = urlObj.searchParams.get('token_hash');
           const type = urlObj.searchParams.get('type');
+          const code = urlObj.searchParams.get('code');
 
+          // Handle PKCE flow (code exchange)
+          if (code) {
+            console.log('✅ Exchanging code for session (PKCE flow)...');
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) {
+              console.error('❌ Code exchange failed:', error);
+              Alert.alert('Verification Failed', 'Unable to verify your email. Please try again.');
+            } else if (data.session) {
+              console.log('✅ Email verified successfully via PKCE!');
+              Alert.alert('Success', 'Your email has been verified! Welcome to REWIND!');
+              router.replace('/(tabs)');
+            }
+            return;
+          }
+
+          // Handle token_hash flow (legacy/implicit)
           if (tokenHash && type) {
             console.log('✅ Verifying email with token...');
             const { user, session, error } = await verifyEmail(tokenHash, type);
@@ -79,6 +96,19 @@ export default function RootLayout() {
               Alert.alert('Verification Failed', 'Unable to verify your email. Please try again.');
             } else if (session) {
               console.log('✅ Email verified successfully!');
+              Alert.alert('Success', 'Your email has been verified! Welcome to REWIND!');
+              router.replace('/(tabs)');
+            }
+            return;
+          }
+
+          // Handle hash fragment (implicit flow - access_token in fragment)
+          const hashParams = url.split('#')[1];
+          if (hashParams) {
+            console.log('✅ Detected hash fragment, refreshing session...');
+            const { data, error } = await supabase.auth.getSession();
+            if (!error && data.session) {
+              console.log('✅ Session restored from hash fragment!');
               Alert.alert('Success', 'Your email has been verified! Welcome to REWIND!');
               router.replace('/(tabs)');
             }

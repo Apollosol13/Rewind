@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Image, StyleSheet, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Image, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import HandwrittenText from './HandwrittenText';
 import { formatPolaroidDate } from '../utils/dateFormatter';
 import FilterOverlay from './FilterOverlay';
@@ -9,27 +10,33 @@ import { shouldShowFilterOverlay } from '../utils/filterPresets';
 
 interface PolaroidFrameProps {
   imageUri: string;
+  videoUri?: string;
+  mediaType?: 'photo' | 'video';
   caption?: string;
   date?: Date | string;
   showRainbow?: boolean;
   width?: number;
   filterId?: PhotoStyle;
   showWatermark?: boolean;
-  showOverlay?: boolean; // Control whether to render overlays (default false for posted photos)
+  showOverlay?: boolean;
 }
 
 export default function PolaroidFrame({
   imageUri,
+  videoUri,
+  mediaType = 'photo',
   caption = '',
   date = new Date(),
   showRainbow = true,
   width = 320,
   filterId = 'polaroid',
   showWatermark = false,
-  showOverlay = false, // Default to false - overlays already baked into posted photos
+  showOverlay = false,
 }: PolaroidFrameProps) {
-  const imageSize = width - 40; // Account for padding
+  const imageSize = width - 40;
   const photoDate = typeof date === 'string' ? new Date(date) : date;
+  const isVideo = mediaType === 'video' && videoUri;
+  const [isMuted, setIsMuted] = useState(false);
 
   return (
     <View style={[styles.polaroidFrame, { width }]}>
@@ -47,25 +54,36 @@ export default function PolaroidFrame({
         </View>
       )}
 
-      {/* Photo */}
+      {/* Photo or Video */}
       <View style={styles.photoContainer}>
-        <Image 
-          source={{ uri: imageUri }} 
-          style={[styles.photo, { width: imageSize, height: imageSize }]}
-          resizeMode="cover"
-        />
+        {isVideo ? (
+          <View style={{ width: imageSize, height: imageSize }}>
+            <Video
+              source={{ uri: videoUri }}
+              style={[styles.photo, { width: imageSize, height: imageSize }]}
+              resizeMode={ResizeMode.COVER}
+              isLooping
+              shouldPlay
+              isMuted={isMuted}
+            />
+          </View>
+        ) : (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={[styles.photo, { width: imageSize, height: imageSize }]}
+            resizeMode="cover"
+          />
+        )}
         
-        {/* Filter-specific overlays */}
-        <View style={[StyleSheet.absoluteFill, { width: imageSize, height: imageSize }]}>
-          {/* Apply filter effects for all filters */}
-          <FilterOverlay filterId={filterId} />
-          
-          {/* Camcorder UI overlay - REC, frame corners, etc. */}
-          {/* Only show overlay if showOverlay is true (for camera preview, not posted photos) */}
-          {showOverlay && shouldShowFilterOverlay(filterId) && (
-            <CamcorderOverlay timestamp={photoDate} />
-          )}
-        </View>
+        {/* Filter-specific overlays (only for photos) */}
+        {!isVideo && (
+          <View style={[StyleSheet.absoluteFill, { width: imageSize, height: imageSize }]}>
+            <FilterOverlay filterId={filterId} />
+            {showOverlay && shouldShowFilterOverlay(filterId) && (
+              <CamcorderOverlay timestamp={photoDate} />
+            )}
+          </View>
+        )}
       </View>
 
       {/* Bottom section with date and caption */}
@@ -162,5 +180,19 @@ const styles = StyleSheet.create({
     right: 4,
     color: '#000000',
     opacity: 0.7,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoIndicatorText: {
+    fontSize: 14,
   },
 });

@@ -70,6 +70,94 @@ export async function uploadPhoto(
 }
 
 /**
+ * Upload a video to Supabase Storage and create database entry
+ */
+export async function uploadVideo(
+  videoUri: string,
+  thumbnailUri: string,
+  caption: string,
+  userId: string,
+  photoStyle?: string
+) {
+  try {
+    // 1. Read video file as base64
+    const videoBase64 = await FileSystem.readAsStringAsync(videoUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // 2. Read thumbnail as base64
+    const thumbBase64 = await FileSystem.readAsStringAsync(thumbnailUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // 3. Generate unique filenames
+    const timestamp = Date.now();
+    const videoFileName = `${userId}_${timestamp}.mp4`;
+    const thumbFileName = `${userId}_${timestamp}_thumb.jpg`;
+    const videoFilePath = `videos/${videoFileName}`;
+    const thumbFilePath = `photos/${thumbFileName}`;
+
+    // 4. Upload video to Supabase Storage
+    const { error: videoUploadError } = await supabase.storage
+      .from('rewind-photos')
+      .upload(videoFilePath, decode(videoBase64), {
+        contentType: 'video/mp4',
+        upsert: false,
+      });
+
+    if (videoUploadError) throw videoUploadError;
+
+    // 5. Upload thumbnail
+    const { error: thumbUploadError } = await supabase.storage
+      .from('rewind-photos')
+      .upload(thumbFilePath, decode(thumbBase64), {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (thumbUploadError) throw thumbUploadError;
+
+    // 6. Get public URLs
+    const { data: videoUrlData } = supabase.storage
+      .from('rewind-photos')
+      .getPublicUrl(videoFilePath);
+
+    const { data: thumbUrlData } = supabase.storage
+      .from('rewind-photos')
+      .getPublicUrl(thumbFilePath);
+
+    // 7. Save to database
+    const { data, error } = await supabase
+      .from('photos')
+      .insert([
+        {
+          user_id: userId,
+          image_url: thumbUrlData.publicUrl,
+          video_url: videoUrlData.publicUrl,
+          media_type: 'video',
+          caption: caption,
+          prompt_time: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          photo_style: photoStyle || 'polaroid',
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      console.log('✅ Video uploaded successfully - ID:', data.id);
+    }
+
+    return { photo: data, error: null };
+  } catch (error) {
+    console.error('Error uploading video:', error);
+    return { photo: null, error };
+  }
+}
+
+/**
  * Get feed of recent photos (excludes blocked users)
  */
 export async function getFeed(limit: number = 20) {

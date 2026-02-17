@@ -35,7 +35,7 @@ export async function signUp(email: string, password: string, username: string) 
           username: username,
           display_name: username,
         },
-        emailRedirectTo: undefined, // Will be handled in-app
+        emailRedirectTo: 'rewind://auth/callback',
       },
     });
 

@@ -1,10 +1,11 @@
-import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
+import { CameraMode, CameraType, CameraView, FlashMode, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Animated,
     Dimensions,
     Keyboard,
     KeyboardAvoidingView,
@@ -17,6 +18,7 @@ import {
     TouchableWithoutFeedback,
     View
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { captureRef } from 'react-native-view-shot';
 import CamcorderOverlay from '../components/CamcorderOverlay';
 import FilterOverlay from '../components/FilterOverlay';
@@ -29,7 +31,11 @@ import { uploadPhotoToBackend } from '../services/backendApi';
 import { canUserPost, getTimeUntilNextPost, recordDailyPost } from '../services/dailyPost';
 import { shouldSendNotification } from '../services/notificationPreferences';
 import { scheduleRandomDailyNotifications, sendFriendPostedNotification } from '../services/notifications';
+import { uploadVideo } from '../services/photos';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { shouldShowFilterOverlay } from '../utils/filterPresets';
+
+const MAX_VIDEO_DURATION = 6; // seconds
 
 // Screen size helpers for responsive layout
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -40,18 +46,25 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [flash, setFlash] = useState<FlashMode>('off');
   const [permission, requestPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null); // Store uploaded photo ID for B&W
-  const [isProcessingBW, setIsProcessingBW] = useState(false); // Loading state for B&W conversion
+  const [capturedVideo, setCapturedVideo] = useState<string | null>(null);
+  const [cameraMode, setCameraMode] = useState<CameraMode>('picture');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingCountdown, setRecordingCountdown] = useState(MAX_VIDEO_DURATION);
+  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
+  const [isProcessingBW, setIsProcessingBW] = useState(false);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [photoStyle, setPhotoStyle] = useState<PhotoStyle>('polaroid');
   const [alreadyPosted, setAlreadyPosted] = useState(false);
   const [timeUntilNext, setTimeUntilNext] = useState({ hours: 0, minutes: 0 });
   const [checkingStatus, setCheckingStatus] = useState(true);
-  // TIMER SYSTEM REMOVED - No more countdown or "late" tracking
+  const [cameraReady, setCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
-  const previewRef = useRef<View>(null); // Ref for capturing styled preview
+  const previewRef = useRef<View>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingProgress = useRef(new Animated.Value(0)).current;
   const router = useRouter();
 
   // Request permissions on mount
@@ -195,6 +208,74 @@ export default function CameraScreen() {
     }
   };
 
+  const startRecording = async () => {
+    if (!cameraRef.current || !cameraReady) return;
+    
+    // Request mic permission if not granted
+    if (!micPermission?.granted) {
+      const result = await requestMicPermission();
+      if (!result.granted) {
+        Alert.alert('Permission needed', 'Microphone access is needed to record video with audio.');
+        return;
+      }
+    }
+
+    try {
+      setIsRecording(true);
+      setRecordingCountdown(MAX_VIDEO_DURATION);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+      // Start countdown timer
+      let timeLeft = MAX_VIDEO_DURATION;
+      recordingTimerRef.current = setInterval(() => {
+        timeLeft -= 1;
+        setRecordingCountdown(timeLeft);
+        if (timeLeft <= 0 && recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+        }
+      }, 1000);
+
+      // Animate progress ring
+      recordingProgress.setValue(0);
+      Animated.timing(recordingProgress, {
+        toValue: 1,
+        duration: MAX_VIDEO_DURATION * 1000,
+        useNativeDriver: false,
+      }).start();
+
+      // Small delay for camera readiness
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const video = await cameraRef.current.recordAsync({
+        maxDuration: MAX_VIDEO_DURATION,
+      });
+
+      if (video?.uri) {
+        setCapturedVideo(video.uri);
+      }
+    } catch (error) {
+      console.error('Error recording video:', error);
+      Alert.alert('Error', 'Failed to record video. Please try again.');
+    } finally {
+      setIsRecording(false);
+      setRecordingCountdown(MAX_VIDEO_DURATION);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      recordingProgress.setValue(0);
+    }
+  };
+
+  const stopRecording = () => {
+    if (cameraRef.current && isRecording) {
+      cameraRef.current.stopRecording();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
   const retakePicture = async () => {
     // If B&W photo was already uploaded, delete it from database
     if (uploadedPhotoId) {
@@ -216,19 +297,97 @@ export default function CameraScreen() {
     }
     
     setCapturedImage(null);
+    setCapturedVideo(null);
     setCaption('');
     setUploadedPhotoId(null);
   };
 
   const handleUpload = async () => {
-    if (!capturedImage) return;
+    if (!capturedImage && !capturedVideo) return;
 
     try {
       setUploading(true);
       const { user } = await getCurrentUser();
       
       if (!user) {
-        Alert.alert('Error', 'Please sign in to upload photos');
+        Alert.alert('Error', 'Please sign in to upload');
+        return;
+      }
+
+      // Handle video upload
+      if (capturedVideo) {
+        console.log('🎥 Uploading video...');
+        
+        // Generate thumbnail from the first frame of the video
+        let thumbnailUri = capturedImage || capturedVideo;
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(capturedVideo, {
+            time: 0,
+          });
+          thumbnailUri = uri;
+          console.log('✅ Video thumbnail generated');
+        } catch (thumbError) {
+          console.warn('⚠️ Could not generate thumbnail, using fallback:', thumbError);
+        }
+        
+        const { photo, error } = await uploadVideo(
+          capturedVideo,
+          thumbnailUri,
+          caption,
+          user.id,
+          photoStyle
+        );
+
+        if (error || !photo) {
+          Alert.alert('Error', 'Failed to upload video. Please try again.');
+          return;
+        }
+
+        console.log('✅ Video uploaded! ID:', photo.id);
+
+        // Record daily post
+        await recordDailyPost(user.id, photo.id);
+        await scheduleRandomDailyNotifications(3);
+
+        // Send friend posted notifications
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('username, push_token')
+            .eq('id', user.id)
+            .single();
+
+          if (userData) {
+            const { data: followers } = await supabase
+              .from('follows')
+              .select('follower_id')
+              .eq('following_id', user.id);
+
+            if (followers && followers.length > 0) {
+              for (const follower of followers) {
+                if (follower.follower_id === user.id) continue;
+
+                const { data: followerData } = await supabase
+                  .from('users')
+                  .select('push_token, username')
+                  .eq('id', follower.follower_id)
+                  .single();
+
+                if (followerData && followerData.push_token === userData.push_token) continue;
+
+                const wantsNotif = await shouldSendNotification(follower.follower_id, 'notif_friend_posted');
+                if (wantsNotif) {
+                  await sendFriendPostedNotification(follower.follower_id, userData.username, photo.id);
+                }
+              }
+            }
+          }
+        } catch (notifError) {
+          console.error('❌ Error sending notifications:', notifError);
+        }
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/(tabs)');
         return;
       }
 
@@ -395,12 +554,11 @@ export default function CameraScreen() {
   };
 
   // Preview modal after capturing
-  if (capturedImage || isProcessingBW) {
+  if (capturedImage || capturedVideo || isProcessingBW) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.previewContainer}>
           {isProcessingBW ? (
-            // Loading state for B&W conversion
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#EF4249" />
               <Text style={styles.loadingText}>Converting to B&W...</Text>
@@ -425,17 +583,33 @@ export default function CameraScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.previewContent}>
-              <View style={styles.previewImageContainer} ref={previewRef} collapsable={false}>
-                <PolaroidFrame
-                  imageUri={capturedImage}
-                  caption={caption}
-                  date={new Date()}
-                  showRainbow={true}
-                  width={340}
-                  filterId={photoStyle}
-                  showOverlay={true}
-                />
-              </View>
+              {capturedVideo ? (
+                <View style={styles.videoPreviewContainer}>
+                  <Video
+                    source={{ uri: capturedVideo }}
+                    style={styles.videoPreview}
+                    resizeMode={ResizeMode.COVER}
+                    isLooping
+                    shouldPlay
+                    isMuted={false}
+                  />
+                  <View style={styles.videoBadge}>
+                    <Text style={styles.videoBadgeText}>6s Video</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.previewImageContainer} ref={previewRef} collapsable={false}>
+                  <PolaroidFrame
+                    imageUri={capturedImage}
+                    caption={caption}
+                    date={new Date()}
+                    showRainbow={true}
+                    width={340}
+                    filterId={photoStyle}
+                    showOverlay={true}
+                  />
+                </View>
+              )}
 
               <View style={styles.captionContainer}>
                 <TextInput
@@ -467,7 +641,7 @@ export default function CameraScreen() {
                 {uploading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.actionButtonText}>Share 📸</Text>
+                  <Text style={styles.actionButtonText}>{capturedVideo ? 'Share' : 'Share'} 📸</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -541,7 +715,9 @@ export default function CameraScreen() {
             style={styles.camera}
             facing={facing}
             flash={flash}
+            mode={cameraMode}
             ref={cameraRef}
+            onCameraReady={() => setCameraReady(true)}
           />
 
           {/* Filter overlay - applies image effects for all filters */}
@@ -550,6 +726,16 @@ export default function CameraScreen() {
           {/* Camcorder UI overlay - REC indicator, frame corners, etc. */}
           {shouldShowFilterOverlay(photoStyle) && (
             <CamcorderOverlay timestamp={new Date()} />
+          )}
+
+          {/* Recording indicator */}
+          {isRecording && (
+            <View style={styles.recordingOverlay}>
+              <View style={styles.recordingIndicator}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>{recordingCountdown}s</Text>
+              </View>
+            </View>
           )}
         </View>
 
@@ -562,36 +748,69 @@ export default function CameraScreen() {
           </View>
         )} */}
 
+        {/* Photo/Video Mode Toggle */}
+        <View style={styles.modeToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.modeToggleButton, cameraMode === 'picture' && styles.modeToggleActive]}
+            onPress={() => { setCameraMode('picture'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          >
+            <Text style={[styles.modeToggleText, cameraMode === 'picture' && styles.modeToggleTextActive]}>Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.modeToggleButton, cameraMode === 'video' && styles.modeToggleActive]}
+            onPress={() => { setCameraMode('video'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          >
+            <Text style={[styles.modeToggleText, cameraMode === 'video' && styles.modeToggleTextActive]}>Video</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Bottom Controls Section */}
         <View style={styles.controlsSection}>
           {/* Filter Mode Dial */}
           <View style={styles.modeDialSection}>
-            <StyleDial 
-              selectedStyle={photoStyle}
-              onStyleChange={setPhotoStyle}
-            />
+            {cameraMode === 'picture' && (
+              <StyleDial 
+                selectedStyle={photoStyle}
+                onStyleChange={setPhotoStyle}
+              />
+            )}
           </View>
 
           {/* Big Shutter Button */}
           <View style={styles.shutterSection}>
-            <TouchableOpacity 
-              style={styles.bigShutterButton}
-              onPress={takePicture}
-              activeOpacity={0.7}
-            >
-              <View style={styles.shutterButtonInner} />
-            </TouchableOpacity>
+            {cameraMode === 'picture' ? (
+              <TouchableOpacity 
+                style={styles.bigShutterButton}
+                onPress={takePicture}
+                activeOpacity={0.7}
+              >
+                <View style={styles.shutterButtonInner} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.bigShutterButton, isRecording && styles.recordingShutterButton]}
+                onPress={isRecording ? stopRecording : startRecording}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.shutterButtonInner, 
+                  isRecording ? styles.recordingStopIcon : styles.recordingStartIcon
+                ]} />
+              </TouchableOpacity>
+            )}
+            {cameraMode === 'video' && !isRecording && (
+              <Text style={styles.videoHintText}>Tap to record (6s max)</Text>
+            )}
           </View>
 
-          {/* Camera Roll & Flip Camera Buttons */}
+          {/* Flip Camera Button */}
           <View style={styles.rightButtonsContainer}>
-            {/* Camera Roll Button */}
-            {/* Flip Camera Button */}
             <TouchableOpacity 
               style={styles.flipCameraButton}
               onPress={toggleCameraFacing}
+              disabled={isRecording}
             >
-              <Text style={styles.flipCameraText}>🔄</Text>
+              <Text style={[styles.flipCameraText, isRecording && { opacity: 0.3 }]}>🔄</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -944,5 +1163,114 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Video mode styles
+  modeToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderRadius: 20,
+    padding: 3,
+    alignSelf: 'center',
+  },
+  modeToggleButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 17,
+  },
+  modeToggleActive: {
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  modeToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#999',
+  },
+  modeToggleTextActive: {
+    color: '#333',
+  },
+  recordingOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 6,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4249',
+  },
+  recordingText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  recordingShutterButton: {
+    borderColor: '#EF4249',
+  },
+  recordingStopIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#EF4249',
+  },
+  recordingStartIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FF3333',
+  },
+  videoHintText: {
+    marginTop: 6,
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'center',
+  },
+  videoPreviewContainer: {
+    width: 340,
+    aspectRatio: 0.75,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  videoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(239, 66, 73, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  videoBadgeText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -698,6 +698,11 @@ export default function UserProfileScreen() {
                           />
                           {/* Apply filter overlays based on photo_style */}
                           <FilterOverlay filterId={(photo.photo_style as any) || 'polaroid'} />
+                          {photo.media_type === 'video' && (
+                            <View style={styles.videoGridBadge}>
+                              <Text style={styles.videoGridBadgeText}>▶</Text>
+                            </View>
+                          )}
                         </View>
                         <View style={styles.polaroidCaption}>
                           <HandwrittenText size={14}>
@@ -914,6 +919,8 @@ export default function UserProfileScreen() {
                 <View style={styles.photoContainer}>
                   <PolaroidFrame
                     imageUri={selectedPhoto.image_url}
+                    videoUri={selectedPhoto.video_url}
+                    mediaType={selectedPhoto.media_type || 'photo'}
                     caption={selectedPhoto.caption}
                     date={selectedPhoto.created_at}
                     showRainbow={true}
@@ -1436,6 +1443,22 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     overflow: 'hidden',
+  },
+  videoGridBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 10,
+    width: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoGridBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    marginLeft: 2,
   },
   polaroidImage: {
     width: '100%',

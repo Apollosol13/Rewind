@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  AppState,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -29,11 +30,47 @@ export default function AuthScreen() {
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const pendingPasswordRef = useRef<string>('');
   const router = useRouter();
 
   useEffect(() => {
     checkAppleAuth();
   }, []);
+
+  // Auto-sign-in when user returns to app after verifying email
+  useEffect(() => {
+    if (!pendingVerificationEmail) return;
+
+    const tryAutoSignIn = async () => {
+      const storedPassword = pendingPasswordRef.current;
+      if (!pendingVerificationEmail || !storedPassword) return;
+
+      console.log('🔄 Attempting auto sign-in after email verification...');
+      const { user, error } = await signIn(pendingVerificationEmail, storedPassword);
+      if (!error && user) {
+        console.log('✅ Auto sign-in successful after email verification!');
+        setPendingVerificationEmail(null);
+        pendingPasswordRef.current = '';
+        router.replace('/(tabs)');
+      }
+    };
+
+    // Try when app comes back to foreground
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        tryAutoSignIn();
+      }
+    });
+
+    // Also poll periodically in case the user verifies while staying in-app
+    const pollInterval = setInterval(tryAutoSignIn, 5000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(pollInterval);
+    };
+  }, [pendingVerificationEmail]);
 
   async function checkAppleAuth() {
     const available = await isAppleAuthAvailable();
@@ -71,11 +108,12 @@ export default function AuthScreen() {
         console.log('📬 Email sent to:', email);
         
         if (needsEmailVerification) {
-          // Email verification required
+          // Store password for auto-sign-in after verification
+          pendingPasswordRef.current = password;
           setPendingVerificationEmail(email);
           Alert.alert(
             'Verify Your Email',
-            `We sent a verification link to ${email}. Please check your inbox (and spam folder) and click the link to verify your account.`,
+            `We sent a verification link to ${email}. Please check your inbox (and spam folder) and click the link to verify your account.\n\nYou'll be signed in automatically once verified.`,
             [{ text: 'OK' }]
           );
           return;
@@ -223,15 +261,28 @@ export default function AuthScreen() {
               autoCorrect={false}
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <IconSymbol
+                  name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                  size={20}
+                  color="#999"
+                />
+              </TouchableOpacity>
+            </View>
 
             {!isSignUp && !showForgotPassword && !pendingVerificationEmail && (
               <TouchableOpacity
@@ -331,6 +382,10 @@ export default function AuthScreen() {
                   We sent a verification link to{'\n'}
                   <Text style={styles.verificationEmail}>{pendingVerificationEmail}</Text>
                 </Text>
+                <Text style={styles.autoSignInText}>
+                  You'll be signed in automatically once you verify your email.
+                </Text>
+                <ActivityIndicator size="small" color="#EF4249" style={{ marginBottom: 16 }} />
                 <TouchableOpacity
                   style={styles.resendButton}
                   onPress={() => handleResendVerification(pendingVerificationEmail)}
@@ -340,7 +395,10 @@ export default function AuthScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.backButton}
-                  onPress={() => setPendingVerificationEmail(null)}
+                  onPress={() => {
+                    setPendingVerificationEmail(null);
+                    pendingPasswordRef.current = '';
+                  }}
                 >
                   <Text style={styles.backButtonText}>Back to Sign In</Text>
                 </TouchableOpacity>
@@ -491,6 +549,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
   submitButton: {
     backgroundColor: '#EF4249',
     borderRadius: 10,
@@ -595,6 +671,13 @@ const styles = StyleSheet.create({
   verificationEmail: {
     fontWeight: '600',
     color: '#EF4249',
+  },
+  autoSignInText: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
   resendButton: {
     backgroundColor: '#EF4249',

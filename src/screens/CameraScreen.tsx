@@ -64,6 +64,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const previewRef = useRef<View>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const recordingProgress = useRef(new Animated.Value(0)).current;
   const router = useRouter();
 
@@ -571,7 +572,10 @@ export default function CameraScreen() {
   if (capturedImage || capturedVideo || isProcessingBW) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.previewContainer}>
+        <KeyboardAvoidingView 
+          style={styles.previewContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           {isProcessingBW ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#EF4249" />
@@ -591,8 +595,9 @@ export default function CameraScreen() {
           </View>
 
           <ScrollView 
+            ref={scrollViewRef}
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={{ paddingBottom: 120 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -634,6 +639,11 @@ export default function CameraScreen() {
                   onChangeText={setCaption}
                   maxLength={100}
                   multiline
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
                 />
               </View>
             </View>
@@ -662,7 +672,7 @@ export default function CameraScreen() {
           </ScrollView>
             </>
           )}
-        </View>
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     );
   }
@@ -729,6 +739,7 @@ export default function CameraScreen() {
             style={styles.camera}
             facing={facing}
             flash={flash}
+            enableTorch={cameraMode === 'video' && flash === 'on'}
             mode={cameraMode}
             ref={cameraRef}
             onCameraReady={() => setCameraReady(true)}
@@ -1258,8 +1269,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   videoPreviewContainer: {
-    width: 340,
-    aspectRatio: 0.75,
+    width: 300,
+    aspectRatio: 1,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#000',

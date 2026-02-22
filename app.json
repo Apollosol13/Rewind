@@ -2,7 +2,7 @@
   "expo": {
     "name": "REWIND",
     "slug": "REWND",
-    "version": "1.1.4",
+    "version": "1.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rewind",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rewindapp.ios",
-      "buildNumber": "67",
+      "buildNumber": "72",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -58,9 +58,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#EF4249",
+          "backgroundColor": "#FFFFFF",
           "dark": {
-            "backgroundColor": "#EF4249"
+            "backgroundColor": "#FFFFFF"
           }
         }
       ]

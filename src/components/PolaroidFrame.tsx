@@ -99,7 +99,7 @@ export default function PolaroidFrame({
           {formatPolaroidDate(photoDate)}
         </HandwrittenText>
         {caption ? (
-          <HandwrittenText size={22} style={styles.caption}>
+          <HandwrittenText size={22} style={styles.caption} numberOfLines={2}>
             {caption}
           </HandwrittenText>
         ) : null}

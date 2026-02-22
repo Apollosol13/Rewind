@@ -7,13 +7,15 @@ interface HandwrittenTextProps {
   style?: TextStyle;
   bold?: boolean;
   size?: number;
+  numberOfLines?: number;
 }
 
 export default function HandwrittenText({ 
   children, 
   style, 
   bold = false,
-  size = 24 
+  size = 24,
+  numberOfLines = 1,
 }: HandwrittenTextProps) {
   let [fontsLoaded] = useFonts({
     Caveat_400Regular,
@@ -34,7 +36,7 @@ export default function HandwrittenText({
         },
         style
       ]}
-      numberOfLines={1}
+      numberOfLines={numberOfLines}
       adjustsFontSizeToFit={false}
     >
       {children}
